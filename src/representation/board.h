@@ -9,6 +9,8 @@ using namespace std;
 #define HALFMOVES_BITMASK 0b1111110000
 #define CASTLING_BITMASK 0b1111
 
+class Move;
+
 class Board {
     private: 
         bool whiteTurn;
@@ -18,6 +20,10 @@ class Board {
         // halfmoves (6 bits)
         // enpassant (3 bits)
         uint64_t pieceBitboards[12];
+        uint64_t allOccupiedSquares;
+        uint64_t whiteOccupiedSquares;
+        uint64_t blackOccupiedSquares;
+
     public: 
         Board();
         Board(string FEN);
@@ -29,6 +35,11 @@ class Board {
         uint8_t getCastlingRights();
         uint8_t getEnpassantSquare();
         uint8_t getHalfMoveClock();
+        uint64_t getAllOccupiedSquares();
+        uint64_t getWhiteOccupiedSquares();
+        uint64_t getBlackOccupiedSquares();
         
+        void makeMove(Move& move);
+        void unmakeMove();
         void printBoard();
 };

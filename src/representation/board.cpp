@@ -94,6 +94,7 @@ Board::Board(string FEN) {
 uint64_t Board::getPieceBitboard(PieceType pieceType) {
     return this->pieceBitboards[pieceType];
 }
+
 uint64_t Board::getPieceBitboard(PieceType pieceType, bool currentPlayer) {
     return this->pieceBitboards[pieceType + (6 * (1 - currentPlayer))];
 }
