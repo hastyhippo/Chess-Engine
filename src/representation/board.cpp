@@ -62,21 +62,21 @@ Board::Board(string FEN) {
         }
     }
 
-    printBoard();
+    // printBoard();
     uint16_t newBoardInfo = 0;
 
     whiteTurn = (FEN_split[1] == "w");
-    if (FEN_split[2].size() != 4) {
+    if (FEN_split[2].size() > 4) {
         cerr << "Castling rights is not formatted correctly, with " << FEN_split[2].size() << " fields for castling\n";
     }
     string expectedCastlingRights = "KQkq";
     uint8_t castlingRights = 0;
     for (int i = 0; i < 4; i++) {
-        if(FEN_split[2][i] == expectedCastlingRights[i]) {
+        if(FEN_split[2].find(expectedCastlingRights[i]) != string::npos) {
             castlingRights |= (1 << i);
         }
     }
-    cout << "castling rights: " << castlingRights;
+    // cout << "castling rights: " << castlingRights;
     newBoardInfo |= castlingRights;
     
     if(FEN_split[3] != "-") {
@@ -85,7 +85,7 @@ Board::Board(string FEN) {
 
     newBoardInfo |= stoi(FEN_split[4]) << 4;
     this->boardInfo = newBoardInfo;
-    cout << "boardInfo: " << this->boardInfo << "\n";
+    // cout << "boardInfo: " << this->boardInfo << "\n";
     this->moveNumber = stoi(FEN_split[5]);
 }
 
@@ -145,5 +145,5 @@ void Board::makeMove(Move& move) {
 }
 
 void Board::unmakeMove() {
-    
+
 }
