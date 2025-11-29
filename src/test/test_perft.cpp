@@ -2,6 +2,7 @@
 #include "../representation/board.h"
 #include "../movegen/move.h"
 #include "../movegen/movegen.h"
+#include <chrono>
 
 uint64_t Perft(Board &b, int depth) {
     if (depth == 0) {
@@ -19,6 +20,15 @@ uint64_t Perft(Board &b, int depth) {
     return n_moves;
 }
 
+void timedPerft(Board &b, int depth) {
+    auto start = chrono::high_resolution_clock::now();
+    uint64_t nodes = Perft(b, depth);
+    auto end = chrono::high_resolution_clock::now();
+    double seconds = chrono::duration<double>(end - start).count();
+    double nps = nodes/seconds;
+    cout << "Perft : " << depth <<" | " << nodes << " nodes in " << seconds << " seconds | " << nps << " nodes/sec\n"; 
+
+}
 DOCTEST_TEST_SUITE("perft") {
     TEST_CASE("Starting position - perft(1-6)") {
         Board b("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
@@ -29,6 +39,8 @@ DOCTEST_TEST_SUITE("perft") {
         CHECK(Perft(b, 5) == 4865609);
         CHECK(Perft(b, 6) == 119060324);
     }
+
+
 
     TEST_CASE("Kiwipete - perft(1-5)") {
         Board b("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
@@ -57,5 +69,12 @@ DOCTEST_TEST_SUITE("perft") {
         CHECK(Perft(b, 3) == 62379);
         CHECK(Perft(b, 4) == 2103487);
         CHECK(Perft(b, 5) == 89941194);
+    }
+
+    TEST_CASE("Perft Timed") {
+        Board b("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        for (int i = 1; i <= 7; i++) {
+            timedPerft(b, i);
+        }
     }
 }
