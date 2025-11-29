@@ -1,5 +1,7 @@
 #include "defines.h"
 
+unordered_map<string, uint64_t> squareToIndex;
+
 vector<string> splitString(const string& str, const char delimiter) {
     vector<string> tokens(0);
     size_t last = 0, next = 0;

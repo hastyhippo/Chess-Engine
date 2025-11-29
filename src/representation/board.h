@@ -23,6 +23,8 @@ class Board {
         uint64_t allOccupiedSquares;
         uint64_t whiteOccupiedSquares;
         uint64_t blackOccupiedSquares;
+        
+        void updateOccupiedSquares();
 
     public: 
         Board();

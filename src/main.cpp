@@ -2,12 +2,24 @@
 #include "./misc/defines.h"
 #include "./representation/board.h"
 #include "./movegen/movegen.h"
+#define DOCTEST_CONFIG_IMPLEMENT
+#include "./test/doctest.h"
+
 using namespace std;
 
-int main() {
-    Board p("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    Board p2("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
-    Board p3("rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2");
-    Board p4("rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2");
+
+int main(int argc, char** argv) {
+    for (int i = 1; i < argc; i++) {
+        if (string(argv[i]) == "-t") {
+            doctest::Context context;
+            context.applyCommandLine(argc, argv);
+            int res = context.run();
+            if (context.shouldExit()) {
+                return res;
+            }
+            return 0;
+        }
+    }
+
 
 }

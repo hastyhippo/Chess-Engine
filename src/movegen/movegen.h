@@ -1,10 +1,12 @@
+#pragma once
 #include <bits/stdc++.h>
 #include "../misc/defines.h"
-class Move;
-class Board;
+#include "../movegen/move.h"
+#include "../representation/board.h"
+
 using namespace std;
 
-void addMoves(Board& b, vector<Move>& moves);
+vector<Move> generateMoves(Board &b);
 void preCalculations(Board& b);
 void addPawnMoves(Board& b, vector<Move>& moves);
 void addKnightMoves(Board& b, vector<Move>& moves);

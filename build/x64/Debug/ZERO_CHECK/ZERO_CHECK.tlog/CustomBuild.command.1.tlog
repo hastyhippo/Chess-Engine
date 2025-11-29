@@ -1,0 +1,10 @@
+^C:\USERS\NATHA\ONEDRIVE\DOCUMENTS\GITHUB\CHESSENGINE\BUILD\CMAKEFILES\1B0DFFCE0D60BA8C5455F59AFF1DE9A2\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/natha/OneDrive/Documents/GitHub/ChessEngine -BC:/Users/natha/OneDrive/Documents/GitHub/ChessEngine/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/natha/OneDrive/Documents/GitHub/ChessEngine/build/ChessEngine.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

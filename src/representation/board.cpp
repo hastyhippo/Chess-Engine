@@ -1,5 +1,3 @@
-#pragma once
-
 #include "board.h"
 
 Board::Board() {
@@ -101,6 +99,7 @@ uint64_t Board::getPieceBitboard(PieceType pieceType, bool currentPlayer) {
 
 void Board::addPieceBitboard(PieceType pieceType, uint64_t toAdd) {
     this->pieceBitboards[pieceType] = this->pieceBitboards[pieceType] | toAdd;
+    updateOccupiedSquares();
 }
 
 
@@ -118,4 +117,33 @@ uint8_t Board::getEnpassantSquare() {
 
 bool Board::getWhiteTurn() {
     return (this->whiteTurn);
+}
+
+void Board::updateOccupiedSquares() {
+    whiteOccupiedSquares = 0ULL;
+    blackOccupiedSquares = 0ULL;
+    for (int i = 0; i < 6; i++) {
+        whiteOccupiedSquares |= pieceBitboards[i];
+        blackOccupiedSquares |= pieceBitboards[i + 6];
+    }
+    allOccupiedSquares = whiteOccupiedSquares | blackOccupiedSquares;
+}
+
+uint64_t Board::getAllOccupiedSquares() {
+    return allOccupiedSquares;
+}
+
+uint64_t Board::getWhiteOccupiedSquares() {
+    return whiteOccupiedSquares;
+}
+
+uint64_t Board::getBlackOccupiedSquares() {
+    return blackOccupiedSquares;
+}
+
+void Board::makeMove(Move& move) {
+}
+
+void Board::unmakeMove() {
+    
 }

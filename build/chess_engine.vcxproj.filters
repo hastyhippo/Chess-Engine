@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\initialisation\init.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\misc\defines.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\movegen\move.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\movegen\movegen.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\representation\board.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\search\eval.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\search\search.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\test\test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\test\test_perft.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\uci\uci.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{8C4AB047-6A07-3736-B2F2-024E45B8ADA4}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
