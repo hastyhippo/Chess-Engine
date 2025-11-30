@@ -1,4 +1,6 @@
 #include "defines.h"
+#include "../movegen/move.h"
+#include "../movegen/movegen.h"
 
 unordered_map<string, uint64_t> name_to_bit = {
     {"a1", 1ULL << 0},  {"b1", 1ULL << 1},  {"c1", 1ULL << 2},  {"d1", 1ULL << 3},  {"e1", 1ULL << 4},  {"f1", 1ULL << 5},  {"g1", 1ULL << 6},  {"h1", 1ULL << 7},
@@ -76,4 +78,20 @@ void printBB(uint64_t bb) {
         }
         cout << "\n";
     }
+}
+
+uint64_t Perft(Board &b, int depth) {
+    if (depth == 0) {
+        return (uint64_t)1;
+    }
+    
+    uint64_t n_moves = 0;
+    vector<Move> move_list = generateMoves(b);
+
+    for (Move m : move_list) {
+        b.makeMove(m);
+        n_moves += Perft(b, depth - 1);
+        b.unmakeMove();
+    }
+    return n_moves;
 }

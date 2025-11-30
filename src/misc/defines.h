@@ -10,6 +10,8 @@ using namespace std;
 #define N_PIECE_TYPES 6
 
 #define COL_A 
+
+class Board;
 enum PieceType {W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING, 
                 B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING};
 
@@ -23,6 +25,8 @@ extern unordered_map<uint8_t, string> sq_to_name;
 extern vector<uint64_t> get_file;
 extern vector<uint64_t> get_rank;
 extern int N;
+
+uint64_t Perft(Board &b, int depth);
 
 inline uint64_t pop_lsb(uint64_t* b) {
     uint64_t sq = _tzcnt_u64(*b);
