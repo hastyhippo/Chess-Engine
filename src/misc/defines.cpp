@@ -99,13 +99,13 @@ void initialiseKnightMoves() {
     vector<uint64_t> allowed_ranks = {get_ranks_below[N - 3], get_ranks_below[N - 2], get_ranks_above[1], get_ranks_above[2],
         get_ranks_above[2], get_ranks_above[1], get_ranks_below[N - 2], get_ranks_below[N - 3]};
     
-    for (int i = 0; i < 64; i++) {
+    for (int sq = 0; sq < 64; sq++) {
         uint64_t attacked_sq = 0ULL;
         for (int i = 0; i < 8; i++) {
-            uint64_t new_sq = (1ULL << i) & allowed_files[i] & allowed_ranks[i];
+            uint64_t new_sq = (1ULL << sq) & allowed_files[i] & allowed_ranks[i];
             attacked_sq |= shift(new_sq, hor_offset[i] + vert_offset[i] * N);
         }
-        knight_moves[i] = attacked_sq;
+        knight_moves[sq] = attacked_sq;
     }
 }
 
@@ -230,9 +230,5 @@ void initialiseMoveGeneration() {
     initialiseMagics();
     initialiseKnightMoves();
     initialiseKingMoves();
-
-    for (int i = 0; i < 64; i++) {
-        printBB(king_moves[i]);
-    }
 }
 
