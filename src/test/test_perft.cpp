@@ -9,8 +9,9 @@ void timedPerft(Board &b, int depth) {
     auto end = chrono::high_resolution_clock::now();
     double seconds = chrono::duration<double>(end - start).count();
     double nps = nodes/seconds;
-    cout << "Perft : " << depth <<" | " << nodes << " nodes in " << seconds << " seconds | " << nps << " nodes/sec\n"; 
+    cout << "Perft : " << depth <<" | " << nodes << " nodes in " << seconds << " seconds | " << nps/1e6 << "m nodes/sec\n"; 
 }
+
 DOCTEST_TEST_SUITE("perft") {
     TEST_CASE("Starting position - perft(1-6)" * doctest::skip()) {
         Board b("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
@@ -21,8 +22,6 @@ DOCTEST_TEST_SUITE("perft") {
         CHECK(Perft(b, 5) == 4865609);
         CHECK(Perft(b, 6) == 119060324);
     }
-
-
 
     TEST_CASE("Kiwipete - perft(1-5)" * doctest::skip()) {
         Board b("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");

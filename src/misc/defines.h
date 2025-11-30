@@ -24,7 +24,32 @@ extern unordered_map<uint8_t, string> sq_to_name;
 
 extern vector<uint64_t> get_file;
 extern vector<uint64_t> get_rank;
-extern int N;
+
+extern vector<uint64_t> get_files_left;
+extern vector<uint64_t> get_files_right;
+extern vector<uint64_t> get_ranks_above;
+extern vector<uint64_t> get_ranks_below;
+
+
+constexpr int N = 8;
+
+constexpr uint64_t A_FILE = 0x0101010101010101ULL;
+constexpr uint64_t B_FILE = 0x0202020202020202ULL;
+constexpr uint64_t C_FILE = 0x0404040404040404ULL;
+constexpr uint64_t D_FILE = 0x0808080808080808ULL;
+constexpr uint64_t E_FILE = 0x1010101010101010ULL;
+constexpr uint64_t F_FILE = 0x2020202020202020ULL;
+constexpr uint64_t G_FILE = 0x4040404040404040ULL;
+constexpr uint64_t H_FILE = 0x8080808080808080ULL;
+
+constexpr uint64_t RANK_1 = 0x00000000000000FFULL;
+constexpr uint64_t RANK_2 = 0x000000000000FF00ULL;
+constexpr uint64_t RANK_3 = 0x0000000000FF0000ULL;
+constexpr uint64_t RANK_4 = 0x00000000FF000000ULL;
+constexpr uint64_t RANK_5 = 0x000000FF00000000ULL;
+constexpr uint64_t RANK_6 = 0x0000FF0000000000ULL;
+constexpr uint64_t RANK_7 = 0x00FF000000000000ULL;
+constexpr uint64_t RANK_8 = 0xFF00000000000000ULL;
 
 uint64_t Perft(Board &b, int depth);
 

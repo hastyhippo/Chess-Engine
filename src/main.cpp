@@ -24,14 +24,14 @@ int main(int argc, char** argv) {
             return 0;
         }
     }
-    Board b("b1n5/PP4B1/1P4P1/3Pp3/3P4/P3bpqp/PP3PPP/1K5k w - e6 0 1");
+    Board b("N6N/4Bb2/2N3b1/3NB3/8/8/8/N1k2K1N w - - 0 1");
     vector<Move> moves = generateMoves(b);
     cout << "| ";
     for (Move a : moves) {
         cout << a.getName() << " \n";
     }
 
-    Board b2("1k5K/pp3ppp/p3BPQP/3p4/3pP3/1p4p1/pp4b1/B1N5 b - e3 0 1");
+    Board b2("n6n/4bB2/2n3B1/3nb3/8/8/8/n1k3Kn b - - 0 1");
     vector<Move> moves2 = generateMoves(b2);
     cout << "| ";
     for (Move a : moves2) {
