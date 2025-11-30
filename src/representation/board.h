@@ -13,25 +13,25 @@ class Move;
 
 class Board {
     private: 
-        bool whiteTurn;
-        uint16_t boardInfo;
-        uint16_t moveNumber;
+        bool white_turn;
+        uint16_t board_info;
+        uint16_t move_number;
         // castling (4 bits)
         // halfmoves (6 bits)
         // enpassant (3 bits)
-        uint64_t pieceBitboards[12];
-        uint64_t allOccupiedSquares;
-        uint64_t whiteOccupiedSquares;
-        uint64_t blackOccupiedSquares;
+        uint64_t piece_bitboards[12];
+        uint64_t all_occupied_squares;
+        uint64_t white_occupied_squares;
+        uint64_t black_occupied_squares;
         
         void updateOccupiedSquares();
 
     public: 
         Board();
         Board(string FEN);
-        uint64_t getPieceBitboard(PieceType pieceType);
-        uint64_t getPieceBitboard(PieceType pieceType, bool currentPlayer);
-        void addPieceBitboard(PieceType pieceType, uint64_t toAdd);
+        uint64_t getPieceBitboard(PieceType piece_type);
+        uint64_t getPieceBitboard(PieceType piece_type, bool current_player);
+        void addPieceBitboard(PieceType piece_type, uint64_t to_add);
 
         bool getWhiteTurn();
         uint8_t getCastlingRights();

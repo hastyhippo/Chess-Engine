@@ -1,5 +1,4 @@
 #include <bits/stdc++.h>
-#include "./misc/defines.h"
 #include "./initialisation/init.h"
 #include "./representation/board.h"
 #include "./movegen/movegen.h"

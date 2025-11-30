@@ -11,10 +11,10 @@ using namespace std;
 
 class Move {
     private:
-        uint64_t fromSq;
-        uint64_t toSq;
-        uint8_t moveFlag;
+        uint64_t from_sq;
+        uint64_t to_sq;
+        uint8_t move_flag;
     public:
-        Move(uint64_t fromSq, uint64_t toSq, uint8_t moveFlag);
+        Move(uint64_t from_sq, uint64_t to_sq, uint8_t move_flag);
         string getName();
 };
