@@ -6,6 +6,6 @@ C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\movegen\movegen.cpp;C:\
 C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\representation\board.cpp;C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\build\chess_engine.dir\Debug\board.obj
 C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\search\eval.cpp;C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\build\chess_engine.dir\Debug\eval.obj
 C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\search\search.cpp;C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\build\chess_engine.dir\Debug\search.obj
-C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\test\test.cpp;C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\build\chess_engine.dir\Debug\test.obj
+C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\test\test_movegen.cpp;C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\build\chess_engine.dir\Debug\test_movegen.obj
 C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\test\test_perft.cpp;C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\build\chess_engine.dir\Debug\test_perft.obj
 C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\uci\uci.cpp;C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\build\chess_engine.dir\Debug\uci.obj

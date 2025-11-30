@@ -15,10 +15,11 @@ class Board {
     private: 
         bool white_turn;
         uint16_t board_info;
-        uint16_t move_number;
         // castling (4 bits)
         // halfmoves (6 bits)
         // enpassant (3 bits)
+        uint16_t move_number;
+
         uint64_t piece_bitboards[12];
         uint64_t all_occupied_squares;
         uint64_t white_occupied_squares;

@@ -88,6 +88,18 @@ void addPawnMoves(Board& b, vector<Move>& moves) {
         moves.push_back(Move(from_sq, sq, PROMOTION_ROOK, true));
         moves.push_back(Move(from_sq, sq, PROMOTION_QUEEN, true));
     }
+
+    // ENPASSANT
+    int enp_sq = b.getEnpassantSquare();
+    uint64_t can_enp = enp_sq > 0 ? get_file[enp_sq - 1] : 0;
+    can_enp |= enp_sq < N - 1 ? get_file[enp_sq + 1] : 0;
+    can_enp &= get_rank[whiteTurn ? N - 4 : 3] & pawns;
+    int target_sq = enp_sq + N * (whiteTurn ? N - 3 : 2);
+    // Get the squares adjacent to the enpassant file given by first converting to enpassant square 
+    while (can_enp) {
+        uint64_t sq = pop_lsb(&can_enp);
+        moves.push_back(Move(sq, target_sq, ENPASSANT, true));
+    }
 }
 
 void addKnightMoves(Board& b, vector<Move>& moves) {

@@ -6,6 +6,7 @@
 #define PROMOTION_BISHOP 3
 #define PROMOTION_ROOK 4
 #define PROMOTION_QUEEN 5
+#define ENPASSANT 6
 
 using namespace std;
 

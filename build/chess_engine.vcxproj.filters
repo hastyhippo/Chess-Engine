@@ -25,7 +25,7 @@
     <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\search\search.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\test\test.cpp">
+    <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\test\test_movegen.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\test\test_perft.cpp">
