@@ -50,8 +50,7 @@ void addPawnMoves(Board& b, vector<Move>& moves) {
     uint64_t pr_rank = whiteTurn ? RANK_8 : RANK_1; // promotion rank
 
     uint64_t push1_pawns = shift(pawns, forward) & ~all_occ_sq;
-    uint64_t push2_pawns = push1_pawns & (whiteTurn ? RANK_3 : RANK_5);
-    push2_pawns = shift(push2_pawns, forward) & ~all_occ_sq;
+    uint64_t push2_pawns = shift(push1_pawns & (whiteTurn ? RANK_3 : RANK_6), forward) & ~all_occ_sq;
     uint64_t pr_pawns = push1_pawns & pr_rank;
     
     push1_pawns ^= pr_pawns; // handle promoting pawns seperately from normal pushes
