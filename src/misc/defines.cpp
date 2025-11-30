@@ -43,7 +43,6 @@ vector<uint64_t> get_file = {
     0x4040404040404040ULL,
     0x8080808080808080ULL 
 };
-
 vector<uint64_t> get_rank = {
     0x00000000000000FFULL,
     0x000000000000FF00ULL,
@@ -74,7 +73,6 @@ vector<uint64_t> get_files_right = {
     0xC0C0C0C0C0C0C0C0ULL,
     0x8080808080808080ULL
 };
-
 vector<uint64_t> get_ranks_above = {
     0xFFFFFFFFFFFFFFFFULL,
     0xFFFFFFFFFFFFFF00ULL,
@@ -107,7 +105,6 @@ vector<string> splitString(const string& str, const char delimiter) {
     return tokens;
 }
 
-
 void printBB(uint64_t bb) {
     cout << "Printing: " << bb << "\n";
     for (int i = N_ROWS - 1; i >= 0; i--) {
@@ -133,4 +130,35 @@ uint64_t Perft(Board &b, int depth) {
         b.unmakeMove();
     }
     return n_moves;
+}
+
+uint64_t shift(uint64_t bb, int offset){
+    return offset > 0 ? bb << offset : bb >> -offset;
+}
+
+// Define the magic bitboard tables (initialized later)
+SMagic m_bishop_tbl[64];
+SMagic m_rook_tbl[64];
+uint64_t knight_moves[64];
+
+void InitialiseMoveGeneration() {
+    vector<int> hor_offset = {1, 2, 2, 1, -1, -2, -2, -1};
+    vector<int> vert_offset = {2, 1, -1, -2, -2, -1, 1, 2};
+    
+    //possible files/ranks that knights can be on before moving
+    vector<uint64_t> allowed_files = {get_files_left[N - 2], get_files_left[N - 3], get_files_left[N - 3], get_files_left[N - 2],
+         get_files_right[1], get_files_right[2], get_files_right[2], get_files_right[1]};
+    vector<uint64_t> allowed_ranks = {get_ranks_below[N - 3], get_ranks_below[N - 2], get_ranks_above[1], get_ranks_above[2],
+        get_ranks_above[2], get_ranks_above[1], get_ranks_below[N - 2], get_ranks_below[N - 3]};
+    
+    for (int i = 0; i < 64; i++) {
+        uint64_t attacked_sq = 0ULL;
+        uint64_t start_sq = 1ULL << i;
+        for (int i = 0; i < 8; i++) {
+            int offset = hor_offset[i] + vert_offset[i] * N;
+            uint64_t new_sq = start_sq & allowed_files[i] & allowed_ranks[i];
+            attacked_sq |= shift(new_sq, offset);
+        }
+        knight_moves[i] = attacked_sq;
+    }
 }

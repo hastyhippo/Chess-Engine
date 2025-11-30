@@ -12,6 +12,14 @@ using namespace std;
 #define COL_A 
 
 class Board;
+// using the Fancy approach: https://www.chessprogramming.org/Magic_Bitboards
+struct SMagic {
+    uint64_t* ptr;
+    uint64_t mask;
+    uint64_t magic;
+    int shift;
+};
+
 enum PieceType {W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING, 
                 B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING};
 
@@ -30,6 +38,11 @@ extern vector<uint64_t> get_files_right;
 extern vector<uint64_t> get_ranks_above;
 extern vector<uint64_t> get_ranks_below;
 
+
+// Move generation
+extern SMagic m_rook_tbl[64];
+extern SMagic m_bishop_tbl[64];
+extern uint64_t knight_moves[64];
 
 constexpr int N = 8;
 
@@ -52,6 +65,8 @@ constexpr uint64_t RANK_7 = 0x00FF000000000000ULL;
 constexpr uint64_t RANK_8 = 0xFF00000000000000ULL;
 
 uint64_t Perft(Board &b, int depth);
+uint64_t shift(uint64_t bb, int offset);
+void InitialiseMoveGeneration();
 
 inline uint64_t pop_lsb(uint64_t* b) {
     uint64_t sq = _tzcnt_u64(*b);

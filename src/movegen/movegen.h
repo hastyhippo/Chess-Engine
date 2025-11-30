@@ -6,6 +6,7 @@
 
 using namespace std;
 
+struct SMagic;
 vector<Move> generateMoves(Board &b);
 void preCalculations(Board& b);
 void addPawnMoves(Board& b, vector<Move>& moves);

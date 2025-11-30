@@ -3,14 +3,6 @@
 #include "move.h"
 #include <cstdint>
 
-vector<int> hor_offset = {1, 2, 2, 1, -1, -2, -2, -1};
-vector<int> vert_offset = {2, 1, -1, -2, -2, -1, 1, 2};
-
-//possible files/ranks that knights can be on before moving
-vector<uint64_t> allowed_files = {get_files_left[N - 2], get_files_left[N - 3], get_files_left[N - 3], get_files_left[N - 2],
-     get_files_right[1], get_files_right[2], get_files_right[2], get_files_right[1]};
-vector<uint64_t> allowed_ranks = {get_ranks_below[N - 3], get_ranks_below[N - 2], get_ranks_above[1], get_ranks_above[2],
-    get_ranks_above[2], get_ranks_above[1], get_ranks_below[N - 2], get_ranks_below[N - 3]};
 
 constexpr int NORTH = N, SOUTH = -N, WEST = -1, EAST = 1;
 constexpr int SOUTH_WEST = -N - 1, SOUTH_EAST = -N + 1, NORTH_EAST = N + 1, NORTH_WEST = N - 1; 
@@ -20,9 +12,7 @@ uint64_t friendly_occ_sq;
 uint64_t enemy_occ_sq;
 uint64_t all_occ_sq;
 
-uint64_t shift(uint64_t bb, int offset){
-    return offset > 0 ? bb << offset : bb >> -offset;
-}
+
 
 vector<Move> generateMoves(Board& b) {
     preCalculations(b);
@@ -119,22 +109,72 @@ void addPawnMoves(Board& b, vector<Move>& moves) {
 }
 
 void addKnightMoves(Board& b, vector<Move>& moves) {
-    uint64_t knights = b.getPieceBitboard(W_KNIGHT, b.getWhiteTurn());
-    for (int i = 0; i < 8; i++) {
-        int offset = hor_offset[i] + vert_offset[i] * N;
-        uint64_t valid_knights = knights & allowed_files[i] & allowed_ranks[i];
-        uint64_t knight_moves = (offset > 0 ? valid_knights << offset : valid_knights >> -offset) & ~friendly_occ_sq;
-
-        while (knight_moves) {
-            uint8_t sq = pop_lsb(&knight_moves);
-            moves.push_back(Move(sq - offset, sq, 0 , ((1ULL << sq) & enemy_occ_sq) != 0));
+    bool whiteTurn = b.getWhiteTurn();
+    uint64_t knights = b.getPieceBitboard(W_KNIGHT, whiteTurn);
+    while(knights) {
+        int sq = pop_lsb(&knights);
+        uint64_t knight_sq = knight_moves[sq] & ~friendly_occ_sq;
+        while(knight_sq) {
+            int target_sq = pop_lsb(&knight_sq);
+            moves.push_back(Move(sq, target_sq, 0, ((1ULL << target_sq) & enemy_occ_sq) != 0));
         }
     }
 }
 
-void addSlidingMoves(Board& b, vector<Move>& moves) {
-
+uint64_t getBishopAttacks(uint64_t occ, int sq) {
+    uint64_t* aptr = m_bishop_tbl[sq].ptr;
+    occ     &= m_bishop_tbl[sq].mask;
+    occ     *= m_bishop_tbl[sq].magic;
+    occ     >>= m_bishop_tbl[sq].shift;
+    return aptr[occ];
 }
+
+uint64_t getRookAttacks(uint64_t occ, int sq) {
+    uint64_t* aptr = m_rook_tbl[sq].ptr;
+    occ     &= m_rook_tbl[sq].mask;
+    occ     *= m_rook_tbl[sq].magic;
+    occ     >>= m_rook_tbl[sq].shift;
+    return aptr[occ];
+}
+
+void addSlidingMoves(Board& b, vector<Move>& moves) {
+    bool whiteTurn = b.getWhiteTurn();
+    uint64_t bishops = b.getPieceBitboard(W_BISHOP, whiteTurn);
+    uint64_t rooks = b.getPieceBitboard(W_ROOK, whiteTurn);
+    uint64_t queens = b.getPieceBitboard(W_QUEEN, whiteTurn);
+
+    while(bishops) {
+        int from_sq = pop_lsb(&bishops);
+        uint64_t attacked_sq = getBishopAttacks(all_occ_sq, from_sq);
+        while(attacked_sq) {
+            int to_sq = pop_lsb(&attacked_sq);
+            moves.push_back(Move(from_sq, to_sq, 0, (1ULL << to_sq) & enemy_occ_sq));
+        }
+    }
+
+    while(rooks) {
+        int from_sq = pop_lsb(&rooks);
+        uint64_t attacked_sq = getRookAttacks(all_occ_sq, from_sq);
+        while(attacked_sq) {
+            int to_sq = pop_lsb(&attacked_sq);
+            moves.push_back(Move(from_sq, to_sq, 0, (1ULL << to_sq) & enemy_occ_sq));
+        }
+    }
+
+    while(queens) {
+        int from_sq = pop_lsb(&queens);
+        uint64_t attacked_sq = getRookAttacks(all_occ_sq, from_sq) 
+                            | getBishopAttacks(all_occ_sq, from_sq);
+        while(attacked_sq) {
+            int to_sq = pop_lsb(&attacked_sq);
+            moves.push_back(Move(from_sq, to_sq, 0, (1ULL << to_sq) & enemy_occ_sq));
+        }
+    }
+}
+
+
+
+
 
 void addKingMoves(Board& b, vector<Move>& moves) {
     
