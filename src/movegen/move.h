@@ -16,4 +16,5 @@ class Move {
         uint8_t moveFlag;
     public:
         Move(uint64_t fromSq, uint64_t toSq, uint8_t moveFlag);
+        string getName();
 };
