@@ -4,8 +4,6 @@
 #include <cstdint>
 
 
-constexpr int NORTH = N, SOUTH = -N, WEST = -1, EAST = 1;
-constexpr int SOUTH_WEST = -N - 1, SOUTH_EAST = -N + 1, NORTH_EAST = N + 1, NORTH_WEST = N - 1; 
 
 uint64_t attacked_squares;
 uint64_t friendly_occ_sq;
@@ -122,19 +120,17 @@ void addKnightMoves(Board& b, vector<Move>& moves) {
 }
 
 uint64_t getBishopAttacks(uint64_t occ, int sq) {
-    uint64_t* aptr = m_bishop_tbl[sq].ptr;
     occ     &= m_bishop_tbl[sq].mask;
     occ     *= m_bishop_tbl[sq].magic;
     occ     >>= m_bishop_tbl[sq].shift;
-    return aptr[occ];
+    return m_bishop_tbl[sq].ptr[occ];
 }
 
 uint64_t getRookAttacks(uint64_t occ, int sq) {
-    uint64_t* aptr = m_rook_tbl[sq].ptr;
     occ     &= m_rook_tbl[sq].mask;
     occ     *= m_rook_tbl[sq].magic;
     occ     >>= m_rook_tbl[sq].shift;
-    return aptr[occ];
+    return m_rook_tbl[sq].ptr[occ];
 }
 
 void addSlidingMoves(Board& b, vector<Move>& moves) {
@@ -145,7 +141,7 @@ void addSlidingMoves(Board& b, vector<Move>& moves) {
 
     while(bishops) {
         int from_sq = pop_lsb(&bishops);
-        uint64_t attacked_sq = getBishopAttacks(all_occ_sq, from_sq);
+        uint64_t attacked_sq = getBishopAttacks(all_occ_sq, from_sq) & ~friendly_occ_sq;
         while(attacked_sq) {
             int to_sq = pop_lsb(&attacked_sq);
             moves.push_back(Move(from_sq, to_sq, 0, (1ULL << to_sq) & enemy_occ_sq));
@@ -154,7 +150,7 @@ void addSlidingMoves(Board& b, vector<Move>& moves) {
 
     while(rooks) {
         int from_sq = pop_lsb(&rooks);
-        uint64_t attacked_sq = getRookAttacks(all_occ_sq, from_sq);
+        uint64_t attacked_sq = getRookAttacks(all_occ_sq, from_sq) & ~friendly_occ_sq;
         while(attacked_sq) {
             int to_sq = pop_lsb(&attacked_sq);
             moves.push_back(Move(from_sq, to_sq, 0, (1ULL << to_sq) & enemy_occ_sq));
@@ -163,17 +159,14 @@ void addSlidingMoves(Board& b, vector<Move>& moves) {
 
     while(queens) {
         int from_sq = pop_lsb(&queens);
-        uint64_t attacked_sq = getRookAttacks(all_occ_sq, from_sq) 
-                            | getBishopAttacks(all_occ_sq, from_sq);
+        uint64_t attacked_sq = (getRookAttacks(all_occ_sq, from_sq) 
+                            | getBishopAttacks(all_occ_sq, from_sq)) & ~friendly_occ_sq;
         while(attacked_sq) {
             int to_sq = pop_lsb(&attacked_sq);
             moves.push_back(Move(from_sq, to_sq, 0, (1ULL << to_sq) & enemy_occ_sq));
         }
     }
 }
-
-
-
 
 
 void addKingMoves(Board& b, vector<Move>& moves) {

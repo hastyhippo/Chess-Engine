@@ -17,10 +17,10 @@ DOCTEST_TEST_SUITE("move generation correctness") {
     TEST_CASE("Perft B/W are same") {
         Board w("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
         Board b("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1");
-        CHECK(Perft(b, 1) == Perft(w, 1));
-        CHECK(Perft(b, 2) == Perft(w, 2));
-        CHECK(Perft(b, 3) == Perft(w, 3));
-        CHECK(Perft(b, 4) == Perft(w, 4));
-        CHECK(Perft(b, 5) == Perft(w,5));
+        CHECK(perft(b, 1) == perft(w, 1));
+        CHECK(perft(b, 2) == perft(w, 2));
+        CHECK(perft(b, 3) == perft(w, 3));
+        CHECK(perft(b, 4) == perft(w, 4));
+        CHECK(perft(b, 5) == perft(w,5));
     }
 }

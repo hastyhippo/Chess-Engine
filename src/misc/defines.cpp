@@ -33,67 +33,6 @@ unordered_map<uint8_t, string> sq_to_name = {
     {56, "a8"}, {57, "b8"}, {58, "c8"}, {59, "d8"}, {60, "e8"}, {61, "f8"}, {62, "g8"}, {63, "h8"}
 };
 
-vector<uint64_t> get_file = {
-    0x0101010101010101ULL,
-    0x0202020202020202ULL,
-    0x0404040404040404ULL,
-    0x0808080808080808ULL,
-    0x1010101010101010ULL,
-    0x2020202020202020ULL,
-    0x4040404040404040ULL,
-    0x8080808080808080ULL 
-};
-vector<uint64_t> get_rank = {
-    0x00000000000000FFULL,
-    0x000000000000FF00ULL,
-    0x0000000000FF0000ULL,
-    0x00000000FF000000ULL,
-    0x000000FF00000000ULL,
-    0x0000FF0000000000ULL,
-    0x00FF000000000000ULL,
-    0xFF00000000000000ULL 
-};
-vector<uint64_t> get_files_left = {
-    0x0101010101010101ULL,
-    0x0303030303030303ULL,
-    0x0707070707070707ULL,
-    0x0F0F0F0F0F0F0F0FULL,
-    0x1F1F1F1F1F1F1F1FULL,
-    0x3F3F3F3F3F3F3F3FULL,
-    0x7F7F7F7F7F7F7F7FULL,
-    0xFFFFFFFFFFFFFFFFULL
-};
-vector<uint64_t> get_files_right = {
-    0xFFFFFFFFFFFFFFFFULL,
-    0xFEFEFEFEFEFEFEFEULL,
-    0xFCFCFCFCFCFCFCFCULL,
-    0xF8F8F8F8F8F8F8F8ULL,
-    0xF0F0F0F0F0F0F0F0ULL,
-    0xE0E0E0E0E0E0E0E0ULL,
-    0xC0C0C0C0C0C0C0C0ULL,
-    0x8080808080808080ULL
-};
-vector<uint64_t> get_ranks_above = {
-    0xFFFFFFFFFFFFFFFFULL,
-    0xFFFFFFFFFFFFFF00ULL,
-    0xFFFFFFFFFFFF0000ULL,
-    0xFFFFFFFFFF000000ULL,
-    0xFFFFFFFF00000000ULL,
-    0xFFFFFF0000000000ULL,
-    0xFFFF000000000000ULL,
-    0xFF00000000000000ULL
-};
-vector<uint64_t> get_ranks_below = {
-    0x00000000000000FFULL,
-    0x000000000000FFFFULL,
-    0x0000000000FFFFFFULL,
-    0x00000000FFFFFFFFULL,
-    0x000000FFFFFFFFFFULL,
-    0x0000FFFFFFFFFFFFULL,
-    0x00FFFFFFFFFFFFFFULL,
-    0xFFFFFFFFFFFFFFFFULL
-};
-
 vector<string> splitString(const string& str, const char delimiter) {
     vector<string> tokens(0);
     size_t last = 0, next = 0;
@@ -116,7 +55,7 @@ void printBB(uint64_t bb) {
     }
 }
 
-uint64_t Perft(Board &b, int depth) {
+uint64_t perft(Board &b, int depth) {
     if (depth == 0) {
         return (uint64_t)1;
     }
@@ -126,7 +65,7 @@ uint64_t Perft(Board &b, int depth) {
 
     for (Move m : move_list) {
         b.makeMove(m);
-        n_moves += Perft(b, depth - 1);
+        n_moves += perft(b, depth - 1);
         b.unmakeMove();
     }
     return n_moves;
@@ -140,25 +79,160 @@ uint64_t shift(uint64_t bb, int offset){
 SMagic m_bishop_tbl[64];
 SMagic m_rook_tbl[64];
 uint64_t knight_moves[64];
+uint64_t king_moves[64];
 
-void InitialiseMoveGeneration() {
+uint64_t directions[8][64];
+int distance_to_edge[64][8];
+uint64_t bishopAttacks[64][512];
+uint64_t rookAttacks[64][4096];
+uint64_t rook_masks[64];
+uint64_t bishop_masks[64];
+
+void initialiseKnightMoves() {
+    //Knights
     vector<int> hor_offset = {1, 2, 2, 1, -1, -2, -2, -1};
     vector<int> vert_offset = {2, 1, -1, -2, -2, -1, 1, 2};
     
     //possible files/ranks that knights can be on before moving
     vector<uint64_t> allowed_files = {get_files_left[N - 2], get_files_left[N - 3], get_files_left[N - 3], get_files_left[N - 2],
-         get_files_right[1], get_files_right[2], get_files_right[2], get_files_right[1]};
+            get_files_right[1], get_files_right[2], get_files_right[2], get_files_right[1]};
     vector<uint64_t> allowed_ranks = {get_ranks_below[N - 3], get_ranks_below[N - 2], get_ranks_above[1], get_ranks_above[2],
         get_ranks_above[2], get_ranks_above[1], get_ranks_below[N - 2], get_ranks_below[N - 3]};
     
     for (int i = 0; i < 64; i++) {
         uint64_t attacked_sq = 0ULL;
-        uint64_t start_sq = 1ULL << i;
         for (int i = 0; i < 8; i++) {
-            int offset = hor_offset[i] + vert_offset[i] * N;
-            uint64_t new_sq = start_sq & allowed_files[i] & allowed_ranks[i];
-            attacked_sq |= shift(new_sq, offset);
+            uint64_t new_sq = (1ULL << i) & allowed_files[i] & allowed_ranks[i];
+            attacked_sq |= shift(new_sq, hor_offset[i] + vert_offset[i] * N);
         }
         knight_moves[i] = attacked_sq;
     }
 }
+
+void setDistanceToEdge() {
+    for (int x = 0; x < 8; x++) {
+        for (int y = 0; y < 8; y++) {
+            int sq = x + y * 8;
+            distance_to_edge[sq][0] = 7 - y; // NORTH
+            distance_to_edge[sq][1] = y;     // SOUTH
+            distance_to_edge[sq][2] = 7 - x; // EAST
+            distance_to_edge[sq][3] = x;     // WEST
+            distance_to_edge[sq][4] = min(7 - y, 7 - x);        // NORTH_EAST
+            distance_to_edge[sq][5] = min(7 - y, x);       // NORTH_WEST
+            distance_to_edge[sq][6] = min(y, 7 - x);  // SOUTH_EAST
+            distance_to_edge[sq][7] = min(y, x);           // SOUTH_WEST
+        }
+    }
+}
+
+void setDirections() {
+    for (int index = 0; index < 8; index++) {
+        for (int sq = 0; sq < 64; sq++) {
+            uint64_t u = 0ULL;
+            for (int x = 1; x <= distance_to_edge[sq][index]; x++) {
+                u |= 1ULL << (sq + DIR_OFFSETS[index] * x);
+            }
+            directions[index][sq] = u;
+        }
+    }
+}
+
+uint64_t setOccupancy(int index, uint64_t attackMask) {
+    uint64_t occupancy = 0ULL;
+    uint64_t mask = attackMask;
+    for (int count = 0; count < __popcnt64(attackMask); count++) {
+        int sq = pop_lsb(&mask);
+        if ((index & (1 << count)) != 0) {
+            occupancy |= 1ULL << sq;
+        }
+    }
+    return occupancy;
+}
+
+uint64_t getBishopMoves(int sq, uint64_t occupancy) {
+    uint64_t moves = 0ULL;
+    for (int i = 4; i < 8; i++) {
+        for (int x = 1; x <= distance_to_edge[sq][i]; x++) {
+            int targetSq = sq + DIR_OFFSETS[i] * x;
+            moves |= 1ULL << targetSq;
+            if ((occupancy & (1ULL << targetSq)) != 0) break;
+        }
+    }
+    return moves;
+}
+
+uint64_t getRookMoves(int sq, uint64_t occupancy) {
+    uint64_t moves = 0ULL;
+    for (int i = 0; i < 4; i++) {
+        for (int x = 1; x <= distance_to_edge[sq][i]; x++) {
+            int targetSq = sq + DIR_OFFSETS[i] * x;
+            moves |= 1ULL << targetSq;
+            if ((occupancy & (1ULL << targetSq)) != 0) break;
+        }
+    }
+    return moves;
+}
+
+void initialiseMagics() {
+    // First, calculate masks for rooks and bishops
+    for (int sq = 0; sq < 64; sq++) {
+        for (int i = 0; i < 8; i++) {
+            for (int x = 1; x < distance_to_edge[sq][i]; x++) {
+                int targetSq = sq + DIR_OFFSETS[i] * x;
+                if (i < 4) {
+                    rook_masks[sq] |= 1ULL << targetSq;
+                } else {
+                    bishop_masks[sq] |= 1ULL << targetSq;
+                }
+            }
+        }
+    }
+    
+    // Initialize magic tables
+    for (int sq = 0; sq < 64; sq++) {
+        // Initialize bishop attacks
+        for (int count = 0; count < 1 << __popcnt64(bishop_masks[sq]); count++) {
+            uint64_t bishopOccupancy = setOccupancy(count, bishop_masks[sq]);
+            uint64_t bishopIndex = (bishopOccupancy * bishop_magics[sq]) >> (64 - bishop_m_bits[sq]);
+            bishopAttacks[sq][bishopIndex] = getBishopMoves(sq, bishopOccupancy);
+        }
+
+        // Initialize rook attacks
+        for (int count = 0; count < 1 << __popcnt64(rook_masks[sq]); count++) {
+            uint64_t rookOccupancy = setOccupancy(count, rook_masks[sq]);
+            uint64_t rookIndex = (rookOccupancy * rook_magics[sq]) >> (64 - rook_m_bits[sq]);
+            rookAttacks[sq][rookIndex] = getRookMoves(sq, rookOccupancy);
+        }
+        
+        // Set up magic table pointers
+        m_bishop_tbl[sq] = {bishopAttacks[sq], bishop_masks[sq], bishop_magics[sq], 64 - bishop_m_bits[sq]};
+        m_rook_tbl[sq] = {rookAttacks[sq], rook_masks[sq], rook_magics[sq], 64 - rook_m_bits[sq]};
+    }
+}
+
+void initialiseKingMoves() {
+    for (int sq = 0; sq < 64; sq++) {
+        uint64_t attacked_sq = 0ULL;
+        uint64_t blocked_sq[8] = {RANK_8, RANK_1, H_FILE, A_FILE, RANK_8 | H_FILE, RANK_8 | A_FILE, 
+        RANK_1 | H_FILE, RANK_1 | A_FILE};
+
+        for (int i = 0; i < 8; i++) {
+            uint64_t valid_sq = (1ULL << sq) & ~blocked_sq[i];
+            attacked_sq |= shift(valid_sq, DIR_OFFSETS[i]);
+        }
+        king_moves[sq] = attacked_sq;
+    }
+}
+
+void initialiseMoveGeneration() {
+    setDistanceToEdge();
+    setDirections();
+    initialiseMagics();
+    initialiseKnightMoves();
+    initialiseKingMoves();
+
+    for (int i = 0; i < 64; i++) {
+        printBB(king_moves[i]);
+    }
+}
+
