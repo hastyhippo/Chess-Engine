@@ -15,6 +15,6 @@ class Move {
         uint64_t to_sq;
         uint8_t move_flag;
     public:
-        Move(uint64_t from_sq, uint64_t to_sq, uint8_t move_flag);
+        Move(uint8_t from_sq, uint8_t to_sq, uint8_t move_flag);
         string getName();
 };

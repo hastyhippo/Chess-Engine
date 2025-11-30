@@ -16,8 +16,16 @@ enum PieceType {W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
 vector<string>splitString(const string& input, const char delimiter);
 void printBB(uint64_t bb);
 
-extern unordered_map<string, uint64_t> name_to_square;
-extern unordered_map<uint64_t, string> square_to_name;
+extern unordered_map<string, uint64_t> name_to_bit;
+extern unordered_map<uint64_t, string> bit_to_name;
+extern unordered_map<uint8_t, string> sq_to_name;
+
 extern vector<uint64_t> get_file;
 extern vector<uint64_t> get_rank;
 extern int N;
+
+inline uint64_t pop_lsb(uint64_t* b) {
+    uint64_t sq = _tzcnt_u64(*b);
+    *b &= *b - 1;
+    return sq;
+}
