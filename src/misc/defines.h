@@ -139,6 +139,8 @@ constexpr int rook_m_bits[64] = {
 extern SMagic m_rook_tbl[64];
 extern SMagic m_bishop_tbl[64];
 extern uint64_t knight_moves[64];
+extern uint64_t king_moves[64];
+
 extern uint64_t directions[8][64];
 extern int distance_to_edge[64][8];
 extern uint64_t bishopAttacks[64][512];

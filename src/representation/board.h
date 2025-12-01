@@ -1,29 +1,29 @@
 #pragma once
 #include <bits/stdc++.h>
+#include <stack>
 #include "../misc/defines.h"
+#include "boardstate.h"
 
 
 using namespace std;
-
-#define ENPASSANT_BITMASK 0b1110000000000
-#define HALFMOVES_BITMASK 0b1111110000
-#define CASTLING_BITMASK 0b1111
 
 class Move;
 
 class Board {
     private: 
         bool white_turn;
-        uint16_t board_info;
-        // castling (4 bits)
-        // halfmoves (6 bits)
-        // enpassant (3 bits)
+        // castling (4 bits) halfmoves (6 bits) enpassant (3 bits)
         uint16_t move_number;
 
-        uint64_t piece_bitboards[12];
+        // uint16_t board_info;
+        // uint64_t piece_bitboards[12];
+        BoardState board_state;
+
         uint64_t all_occupied_squares;
         uint64_t white_occupied_squares;
         uint64_t black_occupied_squares;
+
+        stack<BoardState> state_history;
         
         void updateOccupiedSquares();
 
@@ -33,15 +33,16 @@ class Board {
         uint64_t getPieceBitboard(PieceType piece_type);
         uint64_t getPieceBitboard(PieceType piece_type, bool current_player);
         void addPieceBitboard(PieceType piece_type, uint64_t to_add);
-
-        bool getWhiteTurn();
         uint8_t getCastlingRights();
         uint8_t getEnpassantSquare();
         uint8_t getHalfMoveClock();
+        void setBoardInfo(uint16_t new_info);
+
+        bool getWhiteTurn();
         uint64_t getAllOccupiedSquares();
         uint64_t getWhiteOccupiedSquares();
         uint64_t getBlackOccupiedSquares();
-        
+
         void makeMove(Move& move);
         void unmakeMove();
         void printBoard();

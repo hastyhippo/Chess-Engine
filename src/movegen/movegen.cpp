@@ -107,8 +107,7 @@ void addPawnMoves(Board& b, vector<Move>& moves) {
 }
 
 void addKnightMoves(Board& b, vector<Move>& moves) {
-    bool whiteTurn = b.getWhiteTurn();
-    uint64_t knights = b.getPieceBitboard(W_KNIGHT, whiteTurn);
+    uint64_t knights = b.getPieceBitboard(W_KNIGHT, b.getWhiteTurn());
     while(knights) {
         int sq = pop_lsb(&knights);
         uint64_t knight_sq = knight_moves[sq] & ~friendly_occ_sq;
@@ -170,5 +169,12 @@ void addSlidingMoves(Board& b, vector<Move>& moves) {
 
 
 void addKingMoves(Board& b, vector<Move>& moves) {
-    
+    uint64_t king = b.getPieceBitboard(W_KING, b.getWhiteTurn());
+    int sq = pop_lsb(&king);
+    uint64_t king_sq = king_moves[sq] & ~friendly_occ_sq;
+    while(king_sq) {
+        int target_sq = pop_lsb(&king_sq);
+        moves.push_back(Move(sq, target_sq, 0, ((1ULL << target_sq) & enemy_occ_sq) != 0));
+    }
+    assert(king == 0);
 }
