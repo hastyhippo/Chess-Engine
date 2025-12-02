@@ -223,8 +223,6 @@ uint64_t divided_perft(Board &b, int depth, vector<string>& moves);
 uint64_t perft(Board &b, int depth);
 uint64_t shift(uint64_t bb, int offset);
 void initialiseMoveGeneration();
-void distancesToEdge();
-void setDirections();
 
 inline uint8_t pop_lsb(uint64_t* b) {
     uint8_t sq = _tzcnt_u64(*b);

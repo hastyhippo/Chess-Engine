@@ -3,9 +3,6 @@
 #include "move.h"
 #include <cstdint>
 
-
-
-uint64_t attacked_squares;
 uint64_t friendly_occ_sq;
 uint64_t enemy_occ_sq;
 uint64_t all_occ_sq;
@@ -173,6 +170,4 @@ void addKingMoves(Board& b, vector<Move>& moves) {
             moves.push_back(Move(sq, castling_target_sq[1 - b.getWhiteTurn()][i], CASTLE, false));
         }
     }
-    
-    // assert(king == 0);
 }

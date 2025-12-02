@@ -13,14 +13,14 @@ void timedPerft(Board &b, int depth) {
 }
 
 DOCTEST_TEST_SUITE("perft") {
-    TEST_CASE("Starting position - perft(1-6)" * doctest::skip()) {
+    TEST_CASE("Starting position - perft(1-6)") {
         Board b("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
         CHECK(perft(b, 1) == 20);
         CHECK(perft(b, 2) == 400);
         CHECK(perft(b, 3) == 8902);
         CHECK(perft(b, 4) == 197281);
         CHECK(perft(b, 5) == 4865609);
-        CHECK(perft(b, 6) == 119060324);
+        // CHECK(perft(b, 6) == 119060324);
     }
 
     TEST_CASE("Kiwipete - perft(1-5)" * doctest::skip()) {
