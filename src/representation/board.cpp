@@ -1,26 +1,10 @@
 #include "board.h"
 
 void Board::printBoard() {
-    vector<char> piece_symbols = {'P', 'N', 'B', 'R', 'Q', 'K', 'p', 'n', 'b', 'r', 'q', 'k'};
-    for (int i = 8; i >= 0; i--) {
-        for (int j = 0; j < 8; j++) {
-            bool found = false;
-            for (int k = 0; k < 12; k++) {
-                if (getPieceBitboard((PieceType)k) & (1ULL << (i * 8 + j))) {
-                    if (found) {
-                        cerr << "Piece represented twice\n";
-                        return;
-                    }
-                    cout << piece_symbols[k];
-                    found = true;
-                }
-            }
-            if (!found) {
-                cout << "-";
-            }
-        }
-        cout << "\n";
-    }
+    board_state.printBoard();
+        
+    cout << "Move number: " << move_number << "\n";
+    cout << "Side to move: " << (white_turn ? "White" : "Black") << "\n";
 }
 
 Board::Board(string FEN) {
@@ -69,7 +53,7 @@ Board::Board(string FEN) {
     new_board_info |= castling_rights;
     
     if(fen_split[3] != "-") {
-        new_board_info |= (fen_split[3][0] - 'a') << 10;
+        new_board_info |= (1 + (fen_split[3][0] - 'a')) << 10;  // Store as 1-8 to match makeMove format
     }
 
     new_board_info |= stoi(fen_split[4]) << 4;

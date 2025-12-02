@@ -142,7 +142,12 @@ constexpr uint8_t castling_mask[64] = {
     0b0000, 0b0000, 0b0000, 0b0000, 0b0000, 0b0000, 0b0000, 0b0000,
     0b0000, 0b0000, 0b0000, 0b0000, 0b0000, 0b0000, 0b0000, 0b0000,
     0b1000, 0b0000, 0b0000, 0b0000, 0b1100, 0b0000, 0b0000, 0b0100   // a8 loses q, e8 loses kq, h8 loses k
-};;
+};
+
+constexpr uint8_t castling_rights_bits[2] = {
+    0b1100, //white
+    0b0011 //black
+};
 
 // Move generation
 extern SMagic m_rook_tbl[64];

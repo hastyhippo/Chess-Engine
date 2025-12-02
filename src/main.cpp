@@ -44,7 +44,11 @@ int main(int argc, char** argv) {
     cout << "| ";
     for (Move a : moves) {
         cout << a.getName() << " \n";
+        b.printBoard();
+        b.makeMove(a);
+        b.printBoard();
+        b.unmakeMove();
+        b.printBoard();
+        break;
     }
-
-
 }

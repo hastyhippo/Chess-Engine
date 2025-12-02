@@ -14,13 +14,9 @@ class Board {
         bool white_turn;
         uint16_t move_number;
 
-        // uint64_t piece_bitboards[12];
         BoardState board_state;
-
         stack<BoardState> state_history;
         
-        void updateOccupiedSquares();
-
     public: 
         Board();
         Board(string FEN);

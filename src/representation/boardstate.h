@@ -15,7 +15,7 @@ class BoardState {
     private:
         // uint64_t piece_bb[12];
         uint16_t board_info;
-        // castling (4 bits) halfmoves (6 bits) enpassant (3 bits)
+        // castling (4 bits) halfmoves (6 bits) enpassant (4 bits)
 
         uint64_t piece_bb[6];
         // 0-> pawn | 1->knight | 2->bishops | 3->rooks | 4-> queens | 5-> kings |
@@ -34,4 +34,5 @@ class BoardState {
         uint16_t getBoardInfo();
         uint8_t pieceOn(int sq);
         void makeMove(Move& move, bool white);
+        void printBoard();
 };
