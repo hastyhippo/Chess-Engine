@@ -1,10 +1,4 @@
 #include "boardstate.h"
-
-constexpr uint8_t EMPTY_SQ = 15;
-constexpr uint8_t NO_ENP = 8;
-#define KINGSIDE 0
-#define QUEENSIDE 1
-
 BoardState::BoardState() {
     for (int i = 0; i < 6; ++i) {
         piece_bb[i] = 0ULL;
@@ -69,9 +63,8 @@ void BoardState::makeMove(Move& move, bool white) {
     
     uint8_t castling_rights = getCastlingRights();
 
-    if (castling_rights && (castling_mask[from_sq] | castling_mask[to_sq])) {
-        castling_rights &= ~(castling_mask[from_sq] | castling_mask[to_sq]);
-    }
+    // Update castling rights. Moving from/to king square removes both rights. Moving to/from rook squares removes 1
+    castling_rights &= ~(castling_mask[from_sq] | castling_mask[to_sq]);
 
     if (move.isCapture() && move_flag != ENPASSANT) {
         uint8_t capt_piece = pieceOn(to_sq);
@@ -79,7 +72,6 @@ void BoardState::makeMove(Move& move, bool white) {
         colour_bb[white ? 1 : 0] ^= (1ULL << to_sq);
         pieces_arr[to_sq] = EMPTY_SQ;
     }
-    
     piece_bb[moved_piece % 6] ^= (1ULL << from_sq);
     colour_bb[white ? 0 : 1] ^= (1ULL << from_sq);
     pieces_arr[from_sq] = EMPTY_SQ;
@@ -92,17 +84,16 @@ void BoardState::makeMove(Move& move, bool white) {
 
     uint8_t enp_file = NO_ENP;
     if (move_flag == DOUBLE_PUSH) {
-        enp_file = to_sq % 8;  // Set en passant to the file of the pawn
+        enp_file = to_sq % 8;
     } else if (move_flag == CASTLE) {
-        int side = (to_sq & G_FILE) ? KINGSIDE : QUEENSIDE;
+        int side = ((1ULL << to_sq) & G_FILE) ? KINGSIDE : QUEENSIDE;
         uint64_t rook_move_bb = castling_rook_moves[white ? 0 : 1][side];
         piece_bb[W_ROOK % 6] ^= rook_move_bb;
         colour_bb[white ? 0 : 1] ^= rook_move_bb;
         
         uint8_t rook_piece = white ? W_ROOK : B_ROOK;
-        pieces_arr[side == 0 ? (white ? 7 : 63) : (white ? 0 : 56)] = EMPTY_SQ;
-        pieces_arr[side == 0 ? (white ? 5 : 61) : (white ? 3 : 59)] = rook_piece;
-        castling_rights &= ~castling_rights_bits[1 - white];
+        pieces_arr[side == KINGSIDE ? (white ? 7 : 63) : (white ? 0 : 56)] = EMPTY_SQ;
+        pieces_arr[side == KINGSIDE ? (white ? 5 : 61) : (white ? 3 : 59)] = rook_piece;
     } else if (move_flag == ENPASSANT) {
         uint8_t capt_sq = white ? (to_sq - 8) : (to_sq + 8);
         uint8_t capt_piece = pieceOn(capt_sq);
@@ -114,13 +105,33 @@ void BoardState::makeMove(Move& move, bool white) {
     // Update board_info with new castling rights and en passant
     uint16_t new_board_info = (castling_rights & CASTLING_BITMASK);
     new_board_info |= (enp_file << 10) & ENPASSANT_BITMASK;
-    new_board_info |= ((board_info & HALFMOVES_BITMASK) + 1);
+    new_board_info |= ((board_info & HALFMOVES_BITMASK));
     board_info = new_board_info;
 }
 
 void BoardState::printBoard() {
     const char piece_symbols[] = {'P', 'N', 'B', 'R', 'Q', 'K', 'p', 'n', 'b', 'r', 'q', 'k'};
-        for (int rank = 7; rank >= 0; rank--) {
+    
+    uint8_t castling = getCastlingRights();
+    if (castling == 0) {
+        cout << "Castling: - | ";
+    } else {
+        cout << "Castling: ";
+        if (castling & 0b0001) cout << "K";  // White kingside
+        if (castling & 0b0010) cout << "Q";  // White queenside
+        if (castling & 0b0100) cout << "k";  // Black kingside
+        if (castling & 0b1000) cout << "q";  // Black queenside
+        cout << " | ";
+    }
+    
+    uint8_t enp_file = getEnpassantSquare();
+    if (enp_file != NO_ENP) {
+        char file_char = 'a' + enp_file;
+        cout << "En passant file: " << file_char << " |";
+    }
+    cout << " Halfmove clock: " << (int)getHalfMoveClock() << " \n\n";
+
+    for (int rank = 7; rank >= 0; rank--) {
         for (int file = 0; file < 8; file++) {
             int sq = rank * 8 + file;
             uint8_t piece = pieceOn(sq);
@@ -135,27 +146,5 @@ void BoardState::printBoard() {
         }
         cout << "\n";
     }
-    
-    uint8_t castling = getCastlingRights();
-    if (castling == 0) {
-        cout << "Castling: -\n";
-    } else {
-        cout << "Castling: ";
-        if (castling & 0b0001) cout << "K";  // White kingside
-        if (castling & 0b0010) cout << "Q";  // White queenside
-        if (castling & 0b0100) cout << "k";  // Black kingside
-        if (castling & 0b1000) cout << "q";  // Black queenside
-        cout << "\n";
-    }
-    
-    uint8_t enp_file = getEnpassantSquare();
-    if (enp_file != NO_ENP) {
-        enp_file --;
-        char file_char = 'a' + enp_file;
-        cout << "En passant file: " << file_char << "\n";
-    } else {
-        cout << "En passant: -\n";
-    }
-    
-    cout << "Halfmove clock: " << (int)getHalfMoveClock() << "\n";
+    cout << "----------------------\n";
 }

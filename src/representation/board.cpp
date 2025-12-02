@@ -1,10 +1,10 @@
 #include "board.h"
 
 void Board::printBoard() {
+    cout << "----------------------\n";
+    cout << "Move number: " << move_number << " | Side to move: " << (white_turn ? "White" : "Black") << " \n";
     board_state.printBoard();
-        
-    cout << "Move number: " << move_number << "\n";
-    cout << "Side to move: " << (white_turn ? "White" : "Black") << "\n";
+
 }
 
 Board::Board(string FEN) {
@@ -53,14 +53,14 @@ Board::Board(string FEN) {
     new_board_info |= castling_rights;
     
     if(fen_split[3] != "-") {
-        new_board_info |= (1 + (fen_split[3][0] - 'a')) << 10;  // Store as 1-8 to match makeMove format
+        new_board_info |= ((fen_split[3][0] - 'a') << 10);
     }
 
     new_board_info |= stoi(fen_split[4]) << 4;
     this->board_state.setBoardInfo(new_board_info);
     // cout << "boardInfo: " << this->board_info << "\n";
     this->move_number = stoi(fen_split[5]);
-    state_history.push(this->board_state);
+    state_history.push_back(this->board_state);
 }
 
 uint64_t Board::getPieceBitboard(PieceType piece_type) {
@@ -100,16 +100,16 @@ bool Board::getWhiteTurn() {
 }
 
 void Board::makeMove(Move& move) {
+    state_history.push_back(board_state);
     board_state.makeMove(move, white_turn);
-    state_history.push(board_state);
 
     this->move_number++;
     this->white_turn = !this->white_turn;
 }
 
 void Board::unmakeMove() {
-    BoardState prev_state = state_history.top();
-    state_history.pop();
+    BoardState prev_state = state_history.back();
+    state_history.pop_back();
 
     this->move_number--;
     this->white_turn = !this->white_turn;

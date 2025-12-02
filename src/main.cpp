@@ -39,16 +39,15 @@ int main(int argc, char** argv) {
     // }
     // assert(moves2.size() == moves.size());
     
-    Board b("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1");
+    // Board b("k7/8/8/2PpPp2/3pPp2/8/3P1P2/K7 w - d6 0 1");
+    Board b("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+
     vector<Move> moves = generateMoves(b);
-    cout << "| ";
+    cout << "STARTING POSITION\n";
     for (Move a : moves) {
-        cout << a.getName() << " \n";
-        b.printBoard();
+        cout << "MOVE: " << a.getName() << "\n";
         b.makeMove(a);
         b.printBoard();
         b.unmakeMove();
-        b.printBoard();
-        break;
     }
 }

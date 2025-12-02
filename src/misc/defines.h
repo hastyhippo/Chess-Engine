@@ -162,6 +162,12 @@ extern uint64_t rookAttacks[64][4096];
 extern uint64_t rook_masks[64];
 extern uint64_t bishop_masks[64];
 
+constexpr uint8_t EMPTY_SQ = 15;
+constexpr uint8_t NO_ENP = 8;
+#define KINGSIDE 1
+#define QUEENSIDE 0
+
+
 constexpr int N = 8;
 constexpr int NORTH = N, SOUTH = -N, WEST = -1, EAST = 1;
 constexpr int SOUTH_WEST = -N - 1, SOUTH_EAST = -N + 1, NORTH_EAST = N + 1, NORTH_WEST = N - 1; 
@@ -176,6 +182,15 @@ constexpr uint64_t F_FILE = 0x2020202020202020ULL;
 constexpr uint64_t G_FILE = 0x4040404040404040ULL;
 constexpr uint64_t H_FILE = 0x8080808080808080ULL;
 
+constexpr uint64_t A_1 = 1ULL << 0;  constexpr uint64_t B_1 = 1ULL << 1;  constexpr uint64_t C_1 = 1ULL << 2;  constexpr uint64_t D_1 = 1ULL << 3;  constexpr uint64_t E_1 = 1ULL << 4;  constexpr uint64_t F_1 = 1ULL << 5;  constexpr uint64_t G_1 = 1ULL << 6;  constexpr uint64_t H_1 = 1ULL << 7;
+constexpr uint64_t A_2 = 1ULL << 8;  constexpr uint64_t B_2 = 1ULL << 9;  constexpr uint64_t C_2 = 1ULL << 10; constexpr uint64_t D_2 = 1ULL << 11; constexpr uint64_t E_2 = 1ULL << 12; constexpr uint64_t F_2 = 1ULL << 13; constexpr uint64_t G_2 = 1ULL << 14; constexpr uint64_t H_2 = 1ULL << 15;
+constexpr uint64_t A_3 = 1ULL << 16; constexpr uint64_t B_3 = 1ULL << 17; constexpr uint64_t C_3 = 1ULL << 18; constexpr uint64_t D_3 = 1ULL << 19; constexpr uint64_t E_3 = 1ULL << 20; constexpr uint64_t F_3 = 1ULL << 21; constexpr uint64_t G_3 = 1ULL << 22; constexpr uint64_t H_3 = 1ULL << 23;
+constexpr uint64_t A_4 = 1ULL << 24; constexpr uint64_t B_4 = 1ULL << 25; constexpr uint64_t C_4 = 1ULL << 26; constexpr uint64_t D_4 = 1ULL << 27; constexpr uint64_t E_4 = 1ULL << 28; constexpr uint64_t F_4 = 1ULL << 29; constexpr uint64_t G_4 = 1ULL << 30; constexpr uint64_t H_4 = 1ULL << 31;
+constexpr uint64_t A_5 = 1ULL << 32; constexpr uint64_t B_5 = 1ULL << 33; constexpr uint64_t C_5 = 1ULL << 34; constexpr uint64_t D_5 = 1ULL << 35; constexpr uint64_t E_5 = 1ULL << 36; constexpr uint64_t F_5 = 1ULL << 37; constexpr uint64_t G_5 = 1ULL << 38; constexpr uint64_t H_5 = 1ULL << 39;
+constexpr uint64_t A_6 = 1ULL << 40; constexpr uint64_t B_6 = 1ULL << 41; constexpr uint64_t C_6 = 1ULL << 42; constexpr uint64_t D_6 = 1ULL << 43; constexpr uint64_t E_6 = 1ULL << 44; constexpr uint64_t F_6 = 1ULL << 45; constexpr uint64_t G_6 = 1ULL << 46; constexpr uint64_t H_6 = 1ULL << 47;
+constexpr uint64_t A_7 = 1ULL << 48; constexpr uint64_t B_7 = 1ULL << 49; constexpr uint64_t C_7 = 1ULL << 50; constexpr uint64_t D_7 = 1ULL << 51; constexpr uint64_t E_7 = 1ULL << 52; constexpr uint64_t F_7 = 1ULL << 53; constexpr uint64_t G_7 = 1ULL << 54; constexpr uint64_t H_7 = 1ULL << 55;
+constexpr uint64_t A_8 = 1ULL << 56; constexpr uint64_t B_8 = 1ULL << 57; constexpr uint64_t C_8 = 1ULL << 58; constexpr uint64_t D_8 = 1ULL << 59; constexpr uint64_t E_8 = 1ULL << 60; constexpr uint64_t F_8 = 1ULL << 61; constexpr uint64_t G_8 = 1ULL << 62; constexpr uint64_t H_8 = 1ULL << 63;
+
 constexpr uint64_t RANK_1 = 0x00000000000000FFULL;
 constexpr uint64_t RANK_2 = 0x000000000000FF00ULL;
 constexpr uint64_t RANK_3 = 0x0000000000FF0000ULL;
@@ -186,9 +201,20 @@ constexpr uint64_t RANK_7 = 0x00FF000000000000ULL;
 constexpr uint64_t RANK_8 = 0xFF00000000000000ULL;
 
 constexpr uint64_t castling_rook_moves[2][2] = {
-    {(1ULL << 7) | (1ULL << 5), (1ULL << 0) | (1ULL << 3)},
-    {(1ULL << 63) | (1ULL << 61), (1ULL << 56) | (1ULL << 59)}
+    {H_1 | F_1, A_1 | D_1},
+    {H_8 | F_8, A_8 | D_8}
 };
+
+constexpr uint64_t castling_clear_sq[2][2] = {
+    {G_1 | F_1, B_1 | C_1 | D_1},
+    {G_8 | F_8, B_8 | C_8 | D_8}
+};
+
+constexpr uint64_t castling_target_sq[2][2] = {
+    {6, 2},
+    {62, 58}
+};
+
 
 uint64_t perft(Board &b, int depth);
 uint64_t shift(uint64_t bb, int offset);

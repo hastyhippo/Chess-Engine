@@ -1,12 +1,13 @@
 #pragma once
 #include <bits/stdc++.h>
-#define CASTLE 0
+#define NORMAL 0
 #define DOUBLE_PUSH 1
 #define PROMOTION_KNIGHT 2
 #define PROMOTION_BISHOP 3
 #define PROMOTION_ROOK 4
 #define PROMOTION_QUEEN 5
 #define ENPASSANT 6
+#define CASTLE 7
 
 using namespace std;
 

@@ -15,7 +15,7 @@ class Board {
         uint16_t move_number;
 
         BoardState board_state;
-        stack<BoardState> state_history;
+        vector<BoardState> state_history;
         
     public: 
         Board();

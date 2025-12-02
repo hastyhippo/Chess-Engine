@@ -93,18 +93,18 @@ void addPawnMoves(Board& b, vector<Move>& moves) {
 
     // ENPASSANT
     int enp_sq = b.getEnpassantSquare();
-    if (enp_sq != -1) {
+    if (enp_sq != NO_ENP) {
         uint64_t can_enp = enp_sq != 0 ? get_file[enp_sq + WEST] : 0;
         can_enp |= enp_sq != N - 1 ? get_file[enp_sq + EAST] : 0;
+
         can_enp &= (whiteTurn ? RANK_5 : RANK_4) & pawns;
+
         int target_sq = enp_sq + N * (whiteTurn ? 5 : 2); // set the enpassant square to the correct rank
         // Get the squares adjacent to the enpassant file given by first converting to enpassant square 
         while (can_enp) {
             uint8_t sq = pop_lsb(&can_enp);
             moves.push_back(Move(sq, target_sq, ENPASSANT, true));
         }
-    } else {
-        cout << "NO ENASPNASD";
     }
 }
 
@@ -178,5 +178,13 @@ void addKingMoves(Board& b, vector<Move>& moves) {
         int target_sq = pop_lsb(&king_sq);
         moves.push_back(Move(sq, target_sq, 0, ((1ULL << target_sq) & enemy_occ_sq) != 0));
     }
+
+    //Castling
+    for (int i = 0; i < 2; i++) {
+        if (!(all_occ_sq & castling_clear_sq[b.getWhiteTurn()][i])) {
+            moves.push_back(Move(sq, castling_target_sq[1 - b.getWhiteTurn()][i], CASTLE, false));
+        }
+    }
+    
     // assert(king == 0);
 }
