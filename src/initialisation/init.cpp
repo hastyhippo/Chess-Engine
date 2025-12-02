@@ -1,4 +1,5 @@
 #include "init.h"
+#include <cstdint>
 
 // Local helpers for move generation initialisation
 static void initialiseKnightMoves();
@@ -10,6 +11,7 @@ static uint64_t getRookMoves(int sq, uint64_t occupancy);
 static void initialiseMagics();
 static void initialiseKingMoves();
 static void initialisePawnMoves();
+static void initialiseRayBetween();
 
 void init() {
     initialiseMoveGeneration();
@@ -22,6 +24,7 @@ void initialiseMoveGeneration() {
     initialisePawnMoves();
     initialiseKnightMoves();
     initialiseKingMoves();
+    initialiseRayBetween();
 }
 
 static void initialiseKnightMoves() {
@@ -192,6 +195,49 @@ static void initialisePawnMoves() {
             if (!(pawn_bb & H_FILE)) {
                 pawn_attacks[1][sq] |= 1ULL << (sq - 7);
             }
+        }
+    }
+}
+
+static void initialiseRayBetween() {
+    for (int sq1 = 0; sq1 < 64; sq1++) {
+        for (int sq2 = 0; sq2 < 64; sq2++) {
+            int row1 = sq1 / 8;
+            int col1 = sq1 % 8;
+            int row2 = sq2 / 8;
+            int col2 = sq2 % 8;
+            
+            int dr = row2 - row1;
+            int dc = col2 - col1;
+            
+            bool on_rank = (dr == 0 && dc != 0);
+            bool on_file = (dc == 0 && dr != 0);
+            bool on_diagonal = (abs(dr) == abs(dc) && dr != 0);
+            
+            if (!on_rank && !on_file && !on_diagonal) {
+                ray_between_table[sq1][sq2] = 1ULL << sq1;
+                continue;
+            }
+            
+            int d_row = (dr != 0) ? (dr / abs(dr)) : 0;
+            int d_col = (dc != 0) ? (dc / abs(dc)) : 0;
+            
+            int current_row = sq1 / 8, current_col = sq1 % 8;
+
+            
+            uint64_t ray = 1ULL << sq1;
+            current_row += d_row;
+            current_col += d_col;
+
+            while (current_row >= 0 && current_row < 8 && current_col >= 0 && current_col < 8) {
+                int current_sq = current_row * 8 + current_col;
+                if (current_sq == sq2) ray_between_table[sq1][sq2] = ray;
+                ray |= 1ULL << current_sq;
+                current_row += d_row;
+                current_col += d_col;
+            }
+            
+            ray_through[sq1][sq2] = ray;
         }
     }
 }

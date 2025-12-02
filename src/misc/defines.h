@@ -166,6 +166,8 @@ extern uint64_t bishopAttacks[64][512];
 extern uint64_t rookAttacks[64][4096];
 extern uint64_t rook_masks[64];
 extern uint64_t bishop_masks[64];
+extern uint64_t ray_between_table[64][64];
+extern uint64_t ray_through[64][64];
 
 constexpr uint8_t EMPTY_SQ = 15;
 constexpr uint8_t NO_ENP = 8;

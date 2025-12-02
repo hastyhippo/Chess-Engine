@@ -6,37 +6,58 @@
 uint64_t friendly_occ_sq;
 uint64_t enemy_occ_sq;
 uint64_t all_occ_sq;
+uint64_t pinned_pieces;
 bool white;
 
 template <GenType Type>
 vector<Move> generateMoves(Board& b) {
     white = b.getWhiteTurn();
-    preCalculations(b);
-    vector<Move> moves;
-
+    friendly_occ_sq = b.getColourPieces(b.getWhiteTurn());
+    enemy_occ_sq = b.getColourPieces(!b.getWhiteTurn());
+    all_occ_sq = friendly_occ_sq | enemy_occ_sq;
+    uint64_t pinned_pieces = 0ULL;
     uint8_t king_sq = _tzcnt_u64(b.getPieceBitboard(W_KING, white));
+
+    // Precalculate for pins
+    uint64_t x_ray = (getBishopAttacks(enemy_occ_sq, king_sq) & (b.getPieceBitboard(W_BISHOP, !white) | b.getPieceBitboard(W_QUEEN, !white)))  
+    | (getRookAttacks(enemy_occ_sq, king_sq) & (b.getPieceBitboard(W_ROOK, !white) | b.getPieceBitboard(W_QUEEN, !white)));
+        
+    while(x_ray) {
+        uint64_t intersect = ray_between(king_sq, pop_lsb(&x_ray)) & friendly_occ_sq;
+        if (__popcnt64(intersect) == 1) pinned_pieces |= intersect;
+    }
+
+    vector<Move> moves;
     uint64_t attackers = attackers_to(!white, king_sq, all_occ_sq, b);
     int num_attackers = __popcnt64(attackers);
-
-    uint64_t valid_sq = Type == EVASIONS ? ~0ULL :  // TODO: implement get_blockers() for EVASIONS
+    bool in_check = num_attackers > 0;
+    uint64_t valid_sq = (Type == EVASIONS) ? ray_between(king_sq, _tzcnt_u64(attackers)) :
                         Type == CAPTURES ? enemy_occ_sq :
                         Type == QUIET ? ~enemy_occ_sq : ~0ULL;
 
+    if (num_attackers == 1) valid_sq = ray_between(king_sq, _tzcnt_u64(attackers));
     if (num_attackers <= 1) {
-        addPawnMoves<Type>(b, moves, valid_sq);
+        if (in_check) addPawnMoves<EVASIONS>(b, moves, valid_sq);
+        else addPawnMoves<Type>(b, moves, valid_sq);
         addKnightMoves(b, moves, valid_sq);
         addSlidingMoves(b, moves, valid_sq); 
     }
 
     addKingMoves(b, moves);
-    return moves;
+
+    vector<Move> new_moves;
+    for (Move m: moves) {
+        uint64_t from_sq = 1ULL << m.getFromSq();
+        if (((pinned_pieces & from_sq) || (m.getMoveFlag() == ENPASSANT)) && has_attackers(!white, king_sq, all_occ_sq ^ from_sq ^  (1ULL << m.getToSq()), b))  {
+            // cout << "discarded: " << m.getName() << "\n";
+            continue;
+        }
+        new_moves.push_back(m);
+    }
+
+    return new_moves;
 }
 
-void preCalculations(Board& b) {
-    friendly_occ_sq = b.getColourPieces(b.getWhiteTurn());
-    enemy_occ_sq = b.getColourPieces(!b.getWhiteTurn());
-    all_occ_sq = friendly_occ_sq | enemy_occ_sq;
-}
 
 // Use template here because knowing if we calculate captures only can prune out chunks of logic
 template<GenType Type>
@@ -220,11 +241,17 @@ uint64_t attackers_to(bool colour, uint8_t sq, uint64_t occ, Board& b) { // atta
 }
 
 uint64_t has_attackers(bool colour, uint8_t sq, uint64_t occ, Board& b) { // attacker colour
-    return  !(!(pawn_attacks[colour][sq] & b.getPieceBitboard(W_PAWN, colour)) &&
-              !(knight_moves[sq] & b.getPieceBitboard(W_KNIGHT, colour)) &&
-              !(getBishopAttacks(occ, sq) & (b.getPieceBitboard(W_BISHOP, colour) | b.getPieceBitboard(W_QUEEN, colour))) &&
-              !(getRookAttacks(occ, sq) & (b.getPieceBitboard(W_ROOK, colour) | b.getPieceBitboard(W_QUEEN, colour))) &&
+    return  !(!(pawn_attacks[colour][sq] & occ & b.getPieceBitboard(W_PAWN, colour)) &&
+              !(knight_moves[sq] & occ & b.getPieceBitboard(W_KNIGHT, colour)) &&
+              !(getBishopAttacks(occ, sq) & occ & (b.getPieceBitboard(W_BISHOP, colour) | b.getPieceBitboard(W_QUEEN, colour))) &&
+              !(getRookAttacks(occ, sq) & occ & (b.getPieceBitboard(W_ROOK, colour) | b.getPieceBitboard(W_QUEEN, colour))) &&
               !(king_moves[sq] & b.getPieceBitboard(W_KING, colour)));
+}
+
+// Returns the ray between 2 squares inclusive of sq_2 . if no ray, returns 1ULL << sq2
+uint64_t ray_between(int sq_1, int sq_2) {
+    // ray_between_table starts at sq_2 and goes past sq_1. 
+    return ray_between_table[sq_2][sq_1];
 }
 
 template vector<Move> generateMoves<ALL_MOVES>(Board& b);

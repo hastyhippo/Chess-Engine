@@ -148,4 +148,6 @@ uint64_t bishopAttacks[64][512];
 uint64_t rookAttacks[64][4096];
 uint64_t rook_masks[64];
 uint64_t bishop_masks[64];
+uint64_t ray_between_table[64][64];
+uint64_t ray_through[64][64];
 

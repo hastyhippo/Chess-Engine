@@ -40,33 +40,69 @@ int main(int argc, char** argv) {
     // }
     // assert(moves2.size() == moves.size());
     
-    while(true) {
-        string s;
-        getline(cin, s);
-        Board b(s);
-        vector<Move> moves = generateMoves<ALL_MOVES>(b);
-        cout << "STARTING POSITION\n";
-        for (Move a : moves) {
-            cout << "MOVE: " << a.getName() << "\n";
-            b.makeMove(a);
-            b.printBoard();
-            b.unmakeMove();
-        }
+    // while(true) {
+    //     string s;
+    //     getline(cin, s);
+    //     Board b(s);
+    //     vector<Move> moves = generateMoves<ALL_MOVES>(b);
+    //     cout << "STARTING POSITION\n";
+    //     for (Move a : moves) {
+    //         cout << "MOVE: " << a.getName() << "\n";
+    //         b.makeMove(a);
+    //         b.printBoard();
+    //         b.unmakeMove();
+    //     }
     
-    }
-    Board b("k2r4/8/7b/8/4p1n1/8/4K3/1q6 w - - 0 1");
-    // Board b("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+    // }
+    // Board b("k2r4/8/7b/8/4p1n1/8/4K3/1q6 w - - 0 1");
+    // // Board b("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
 
-    vector<Move> moves = generateMoves<ALL_MOVES>(b);
+    // vector<Move> moves = generateMoves<ALL_MOVES>(b);
+    // cout << "STARTING POSITION\n";
+    // for (Move a : moves) {
+    //     cout << "MOVE: " << a.getName() << "\n";
+    //     b.makeMove(a);
+    //     b.printBoard();
+    //     b.unmakeMove();
+    // }
+    vector<string> v;
+    // divided_perft(b, 3,  1,   v);
+    Board b2("rnb1kbnr/pp1ppppp/8/q1p5/8/3P4/PPPKPPPP/RNBQ1BNR w kq - 0 1");
+    vector<Move> moves = generateMoves<ALL_MOVES>(b2);
     cout << "STARTING POSITION\n";
     for (Move a : moves) {
         cout << "MOVE: " << a.getName() << "\n";
-        b.makeMove(a);
-        b.printBoard();
-        b.unmakeMove();
+        b2.makeMove(a);
+        b2.printBoard();
+        b2.unmakeMove();
     }
-    vector<string> v;
-    // divided_perft(b, 3,  1,   v);
-    // Board b2("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1");
-    // divided_perft(b2, 3, 1, v);
+
+    divided_perft(b2, 3, 1, v);
 }
+
+// d2d3 | nodes: 328515 -> 328511
+/*
+c7c6 | nodes: 15207 -> 15206
+e1d2 | nodes: 488 -> 487
+
+
+
+e7e6 | nodes: 21625
+c7c5 | nodes: 15972
+e7e5 | nodes: 21640
+
+c7c6: 15206
+e7e6: 21624
+c7c5: 15971
+e7e5: 21639
+*/
+
+
+
+
+// f2f3 | nodes: 178891 -> 178889
+// a2a4 | nodes: 217831 -> 217832
+// b2b4 | nodes: 216129 -> 216145
+// c2c4 | nodes: 240081 -> 240082
+// d2d4 | nodes: 361794 -> 361790
+// f2f4 | nodes: 198475 -> 198473
