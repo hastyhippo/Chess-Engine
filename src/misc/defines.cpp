@@ -55,6 +55,57 @@ void printBB(uint64_t bb) {
     }
 }
 
+uint64_t divided_perft(Board &b, int depth, int print_depth, vector<string>& moves) {
+    if (depth == 0) {
+        return (uint64_t)1;
+    }
+    uint64_t n_moves = 0;
+    vector<Move> move_list = generateMoves(b);
+
+    for (Move m : move_list) {
+        b.makeMove(m);
+        moves.push_back(m.getName());
+        n_moves += divided_perft(b, depth - 1, print_depth - 1, moves);
+        moves.pop_back();
+        b.unmakeMove();
+    }
+
+    if(print_depth == 0) {
+        string moves_list = "";
+        for (auto a : moves) {
+            moves_list += a;
+        }   
+        cout << moves_list << " | nodes: " << n_moves << "\n";
+    }
+    return n_moves;
+}
+uint64_t divided_perft(Board &b, int depth, vector<string>& moves) {
+    if (depth == 0) {    
+        return (uint64_t)1;
+    }
+    uint64_t n_moves = 0;
+    vector<Move> move_list = generateMoves(b);
+
+    for (Move m : move_list) {
+        b.makeMove(m);
+        moves.push_back(m.getName());
+        n_moves += divided_perft(b, depth - 1, moves);
+        moves.pop_back();
+        b.unmakeMove();
+    }
+
+    string moves_list = "";
+    for (auto a : moves) {
+        moves_list += a;
+    }  
+    for (int i = 0; i < moves.size(); i++) {
+        cout << "  ";
+    } 
+    cout << moves_list << " | nodes: " << n_moves << "\n";
+
+    return n_moves;
+}
+
 uint64_t perft(Board &b, int depth) {
     if (depth == 0) {
         return (uint64_t)1;

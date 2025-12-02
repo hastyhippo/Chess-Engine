@@ -74,7 +74,7 @@ void addPawnMoves(Board& b, vector<Move>& moves) {
         moves.push_back(Move(from_sq, sq, PROMOTION_QUEEN, true));
     }
 
-    uint64_t capt_r_pawns = shift(pawns & ~F_FILE, whiteTurn ? NORTH_EAST : SOUTH_EAST) & enemy_occ_sq;
+    uint64_t capt_r_pawns = shift(pawns & ~H_FILE, whiteTurn ? NORTH_EAST : SOUTH_EAST) & enemy_occ_sq;
     uint64_t capt_r_pr = capt_r_pawns & pr_rank;
     capt_r_pawns ^= capt_r_pr;
 

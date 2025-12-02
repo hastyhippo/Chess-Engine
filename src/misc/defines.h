@@ -215,6 +215,8 @@ constexpr uint64_t castling_target_sq[2][2] = {
     {62, 58}
 };
 
+uint64_t divided_perft(Board &b, int depth, int print_depth, vector<string>& moves);
+uint64_t divided_perft(Board &b, int depth, vector<string>& moves);
 
 uint64_t perft(Board &b, int depth);
 uint64_t shift(uint64_t bb, int offset);
