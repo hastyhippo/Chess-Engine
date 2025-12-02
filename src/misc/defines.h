@@ -154,6 +154,8 @@ extern SMagic m_rook_tbl[64];
 extern SMagic m_bishop_tbl[64];
 extern uint64_t knight_moves[64];
 extern uint64_t king_moves[64];
+extern uint64_t pawn_moves[2][64];
+extern uint64_t pawn_attacks[2][64];
 
 extern uint64_t directions[8][64];
 extern int distance_to_edge[64][8];
@@ -224,8 +226,8 @@ void initialiseMoveGeneration();
 void distancesToEdge();
 void setDirections();
 
-inline uint64_t pop_lsb(uint64_t* b) {
-    uint64_t sq = _tzcnt_u64(*b);
+inline uint8_t pop_lsb(uint64_t* b) {
+    uint8_t sq = _tzcnt_u64(*b);
     *b &= *b - 1;
     return sq;
 }

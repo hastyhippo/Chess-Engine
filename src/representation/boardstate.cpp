@@ -38,8 +38,9 @@ uint8_t BoardState::getHalfMoveClock() {
     return (this->board_info & HALFMOVES_BITMASK) >> 4;
 }
 
-uint8_t BoardState::getEnpassantSquare() { // 0 means no square 1-8 inclusive means that rank
-    return (this->board_info & ENPASSANT_BITMASK) >> 10;
+uint8_t BoardState::getEnpassantSquare() {
+    uint8_t file = (this->board_info & ENPASSANT_BITMASK) >> 10;
+    return file ? file : NO_ENP;
 }
 
 void BoardState::setBoardInfo(uint16_t new_info) {

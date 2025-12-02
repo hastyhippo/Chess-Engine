@@ -40,19 +40,19 @@ int main(int argc, char** argv) {
     // }
     // assert(moves2.size() == moves.size());
     
-    Board b("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1");
+    Board b("rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1");
     // Board b("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
 
-    // vector<Move> moves = generateMoves(b);
-    // cout << "STARTING POSITION\n";
-    // for (Move a : moves) {
-    //     cout << "MOVE: " << a.getName() << "\n";
-    //     b.makeMove(a);
-    //     b.printBoard();
-    //     b.unmakeMove();
-    // }
+    vector<Move> moves = generateMoves(b);
+    cout << "STARTING POSITION\n";
+    for (Move a : moves) {
+        cout << "MOVE: " << a.getName() << "\n";
+        b.makeMove(a);
+        b.printBoard();
+        b.unmakeMove();
+    }
     vector<string> v;
-    divided_perft(b, 3, v);
-    Board b2("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    divided_perft(b2, 3, v);
+    // divided_perft(b, 3,  1,   v);
+    // Board b2("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1");
+    // divided_perft(b2, 3, 1, v);
 }

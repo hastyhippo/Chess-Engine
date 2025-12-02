@@ -23,14 +23,22 @@ unordered_map<uint64_t, string> bit_to_name = {
     {1ULL <<56, "a8"}, {1ULL <<57, "b8"}, {1ULL <<58, "c8"}, {1ULL <<59, "d8"}, {1ULL <<60, "e8"}, {1ULL <<61, "f8"}, {1ULL <<62, "g8"}, {1ULL <<63, "h8"}
 };
 unordered_map<uint8_t, string> sq_to_name = {
-    {0, "a1"}, {1, "b1"}, {2, "c1"}, {3, "d1"}, {4, "e1"}, {5, "f1"}, {6, "g1"}, {7, "h1"},
-    {8, "a2"}, {9, "b2"}, {10, "c2"}, {11, "d2"}, {12, "e2"}, {13, "f2"}, {14, "g2"}, {15, "h2"},
-    {16, "a3"}, {17, "b3"}, {18, "c3"}, {19, "d3"}, {20, "e3"}, {21, "f3"}, {22, "g3"}, {23, "h3"},
-    {24, "a4"}, {25, "b4"}, {26, "c4"}, {27, "d4"}, {28, "e4"}, {29, "f4"}, {30, "g4"}, {31, "h4"},
-    {32, "a5"}, {33, "b5"}, {34, "c5"}, {35, "d5"}, {36, "e5"}, {37, "f5"}, {38, "g5"}, {39, "h5"},
-    {40, "a6"}, {41, "b6"}, {42, "c6"}, {43, "d6"}, {44, "e6"}, {45, "f6"}, {46, "g6"}, {47, "h6"},
-    {48, "a7"}, {49, "b7"}, {50, "c7"}, {51, "d7"}, {52, "e7"}, {53, "f7"}, {54, "g7"}, {55, "h7"},
-    {56, "a8"}, {57, "b8"}, {58, "c8"}, {59, "d8"}, {60, "e8"}, {61, "f8"}, {62, "g8"}, {63, "h8"}
+    {static_cast<uint8_t>(0),  "a1"}, {static_cast<uint8_t>(1),  "b1"}, {static_cast<uint8_t>(2),  "c1"}, {static_cast<uint8_t>(3),  "d1"},
+    {static_cast<uint8_t>(4),  "e1"}, {static_cast<uint8_t>(5),  "f1"}, {static_cast<uint8_t>(6),  "g1"}, {static_cast<uint8_t>(7),  "h1"},
+    {static_cast<uint8_t>(8),  "a2"}, {static_cast<uint8_t>(9),  "b2"}, {static_cast<uint8_t>(10), "c2"}, {static_cast<uint8_t>(11), "d2"},
+    {static_cast<uint8_t>(12), "e2"}, {static_cast<uint8_t>(13), "f2"}, {static_cast<uint8_t>(14), "g2"}, {static_cast<uint8_t>(15), "h2"},
+    {static_cast<uint8_t>(16), "a3"}, {static_cast<uint8_t>(17), "b3"}, {static_cast<uint8_t>(18), "c3"}, {static_cast<uint8_t>(19), "d3"},
+    {static_cast<uint8_t>(20), "e3"}, {static_cast<uint8_t>(21), "f3"}, {static_cast<uint8_t>(22), "g3"}, {static_cast<uint8_t>(23), "h3"},
+    {static_cast<uint8_t>(24), "a4"}, {static_cast<uint8_t>(25), "b4"}, {static_cast<uint8_t>(26), "c4"}, {static_cast<uint8_t>(27), "d4"},
+    {static_cast<uint8_t>(28), "e4"}, {static_cast<uint8_t>(29), "f4"}, {static_cast<uint8_t>(30), "g4"}, {static_cast<uint8_t>(31), "h4"},
+    {static_cast<uint8_t>(32), "a5"}, {static_cast<uint8_t>(33), "b5"}, {static_cast<uint8_t>(34), "c5"}, {static_cast<uint8_t>(35), "d5"},
+    {static_cast<uint8_t>(36), "e5"}, {static_cast<uint8_t>(37), "f5"}, {static_cast<uint8_t>(38), "g5"}, {static_cast<uint8_t>(39), "h5"},
+    {static_cast<uint8_t>(40), "a6"}, {static_cast<uint8_t>(41), "b6"}, {static_cast<uint8_t>(42), "c6"}, {static_cast<uint8_t>(43), "d6"},
+    {static_cast<uint8_t>(44), "e6"}, {static_cast<uint8_t>(45), "f6"}, {static_cast<uint8_t>(46), "g6"}, {static_cast<uint8_t>(47), "h6"},
+    {static_cast<uint8_t>(48), "a7"}, {static_cast<uint8_t>(49), "b7"}, {static_cast<uint8_t>(50), "c7"}, {static_cast<uint8_t>(51), "d7"},
+    {static_cast<uint8_t>(52), "e7"}, {static_cast<uint8_t>(53), "f7"}, {static_cast<uint8_t>(54), "g7"}, {static_cast<uint8_t>(55), "h7"},
+    {static_cast<uint8_t>(56), "a8"}, {static_cast<uint8_t>(57), "b8"}, {static_cast<uint8_t>(58), "c8"}, {static_cast<uint8_t>(59), "d8"},
+    {static_cast<uint8_t>(60), "e8"}, {static_cast<uint8_t>(61), "f8"}, {static_cast<uint8_t>(62), "g8"}, {static_cast<uint8_t>(63), "h8"}
 };
 
 vector<string> splitString(const string& str, const char delimiter) {
@@ -69,7 +77,6 @@ uint64_t divided_perft(Board &b, int depth, int print_depth, vector<string>& mov
         moves.pop_back();
         b.unmakeMove();
     }
-
     if(print_depth == 0) {
         string moves_list = "";
         for (auto a : moves) {
@@ -81,6 +88,7 @@ uint64_t divided_perft(Board &b, int depth, int print_depth, vector<string>& mov
 }
 uint64_t divided_perft(Board &b, int depth, vector<string>& moves) {
     if (depth == 0) {    
+        cout << moves[moves.size()-1] << " ";
         return (uint64_t)1;
     }
     uint64_t n_moves = 0;
@@ -101,7 +109,7 @@ uint64_t divided_perft(Board &b, int depth, vector<string>& moves) {
     for (int i = 0; i < moves.size(); i++) {
         cout << "  ";
     } 
-    cout << moves_list << " | nodes: " << n_moves << "\n";
+    cout << "\n" << moves_list << " | nodes: " << n_moves << "\n";
 
     return n_moves;
 }
@@ -131,6 +139,8 @@ SMagic m_bishop_tbl[64];
 SMagic m_rook_tbl[64];
 uint64_t knight_moves[64];
 uint64_t king_moves[64];
+uint64_t pawn_moves[2][64];
+uint64_t pawn_attacks[2][64];
 
 uint64_t directions[8][64];
 int distance_to_edge[64][8];
@@ -275,10 +285,48 @@ void initialiseKingMoves() {
     }
 }
 
+void initialisePawnMoves() {
+    for (int sq = 0; sq < 64; sq++) {
+        pawn_moves[0][sq] = 0ULL;
+        pawn_moves[1][sq] = 0ULL;
+        pawn_attacks[0][sq] = 0ULL;
+        pawn_attacks[1][sq] = 0ULL;
+
+        uint64_t pawn_bb = 1ULL << sq;
+
+        if (!(pawn_bb & RANK_8)) {
+            pawn_moves[0][sq] = 1ULL << (sq + 8);
+        }
+
+        if (!(pawn_bb & RANK_1)) {
+            pawn_moves[1][sq] = 1ULL << (sq - 8);
+        }
+
+        if (!(pawn_bb & RANK_8)) {
+            if (!(pawn_bb & A_FILE)) {
+                pawn_attacks[0][sq] |= 1ULL << (sq + 7);
+            }
+            if (!(pawn_bb & H_FILE)) {
+                pawn_attacks[0][sq] |= 1ULL << (sq + 9);
+            }
+        }
+
+        if (!(pawn_bb & RANK_1)) {
+            if (!(pawn_bb & A_FILE)) {
+                pawn_attacks[1][sq] |= 1ULL << (sq - 9);
+            }
+            if (!(pawn_bb & H_FILE)) {
+                pawn_attacks[1][sq] |= 1ULL << (sq - 7);
+            }
+        }
+    }
+}
+
 void initialiseMoveGeneration() {
     setDistanceToEdge();
     setDirections();
     initialiseMagics();
+    initialisePawnMoves();
     initialiseKnightMoves();
     initialiseKingMoves();
 }

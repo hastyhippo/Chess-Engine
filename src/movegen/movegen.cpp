@@ -50,45 +50,33 @@ void addPawnMoves(Board& b, vector<Move>& moves) {
     }
     while(pr_pawns) {
         uint8_t sq = pop_lsb(&pr_pawns);
-        int from_sq = sq - forward;
-        moves.push_back(Move(from_sq, sq, PROMOTION_BISHOP, false));
-        moves.push_back(Move(from_sq, sq, PROMOTION_KNIGHT, false));
-        moves.push_back(Move(from_sq, sq, PROMOTION_ROOK, false));
+        uint8_t from_sq = sq - forward;
         moves.push_back(Move(from_sq, sq, PROMOTION_QUEEN, false));
+        moves.push_back(Move(from_sq, sq, PROMOTION_ROOK, false));
+        moves.push_back(Move(from_sq, sq, PROMOTION_KNIGHT, false));
+        moves.push_back(Move(from_sq, sq, PROMOTION_BISHOP, false));
     }
 
-    uint64_t capt_l_pawns = shift(pawns & ~A_FILE, whiteTurn ? NORTH_WEST : SOUTH_WEST) & enemy_occ_sq;
-    uint64_t capt_l_pr = capt_l_pawns & pr_rank;
-    capt_l_pawns ^= capt_l_pr;
-
-    while(capt_l_pawns) {
-        uint8_t sq = pop_lsb(&capt_l_pawns);
-        moves.push_back(Move(whiteTurn ? sq - NORTH_WEST : sq - SOUTH_WEST, sq, 0, true));
+    uint64_t capt_pawns = pawns & ~pr_rank;
+    while(capt_pawns) {
+        uint8_t pawn_sq = pop_lsb(&capt_pawns);
+        uint64_t attack_bb = pawn_attacks[1 - b.getWhiteTurn()][pawn_sq] & enemy_occ_sq;
+        while(attack_bb) {
+            uint8_t to_sq = pop_lsb(&attack_bb);
+            moves.push_back(Move(pawn_sq, to_sq, 0, true));
+        }
     }
-    while(capt_l_pr) {
-        uint8_t sq = pop_lsb(&capt_l_pr);
-        int from_sq = whiteTurn ? sq - NORTH_WEST : sq - SOUTH_WEST;
-        moves.push_back(Move(from_sq, sq, PROMOTION_BISHOP, true));
-        moves.push_back(Move(from_sq, sq, PROMOTION_KNIGHT, true));
-        moves.push_back(Move(from_sq, sq, PROMOTION_ROOK, true));
-        moves.push_back(Move(from_sq, sq, PROMOTION_QUEEN, true));
-    }
-
-    uint64_t capt_r_pawns = shift(pawns & ~H_FILE, whiteTurn ? NORTH_EAST : SOUTH_EAST) & enemy_occ_sq;
-    uint64_t capt_r_pr = capt_r_pawns & pr_rank;
-    capt_r_pawns ^= capt_r_pr;
-
-    while(capt_r_pawns) {
-        uint8_t sq = pop_lsb(&capt_r_pawns);
-        moves.push_back(Move(whiteTurn ? sq - NORTH_EAST : sq - SOUTH_EAST, sq, 0, true));
-    }
-    while(capt_r_pr) {
-        uint8_t sq = pop_lsb(&capt_r_pr);
-        int from_sq = whiteTurn ? sq - NORTH_EAST : sq - SOUTH_EAST;
-        moves.push_back(Move(from_sq, sq, PROMOTION_BISHOP, true));
-        moves.push_back(Move(from_sq, sq, PROMOTION_KNIGHT, true));
-        moves.push_back(Move(from_sq, sq, PROMOTION_ROOK, true));
-        moves.push_back(Move(from_sq, sq, PROMOTION_QUEEN, true));
+    uint64_t pr_capt_pawns = pawns & pr_rank;
+    while(pr_capt_pawns) {
+        uint8_t pawn_sq = pop_lsb(&pr_capt_pawns);
+        uint64_t attack_bb = pawn_attacks[1-b.getWhiteTurn()][pawn_sq] & enemy_occ_sq;
+        while(attack_bb) {
+            uint8_t to_sq = pop_lsb(&attack_bb);
+            moves.push_back(Move(pawn_sq, to_sq, PROMOTION_QUEEN, true));
+            moves.push_back(Move(pawn_sq, to_sq, PROMOTION_ROOK, true));
+            moves.push_back(Move(pawn_sq, to_sq, PROMOTION_KNIGHT, true));
+            moves.push_back(Move(pawn_sq, to_sq, PROMOTION_BISHOP, true));
+        }
     }
 
     // ENPASSANT
@@ -100,7 +88,6 @@ void addPawnMoves(Board& b, vector<Move>& moves) {
         can_enp &= (whiteTurn ? RANK_5 : RANK_4) & pawns;
 
         int target_sq = enp_sq + N * (whiteTurn ? 5 : 2); // set the enpassant square to the correct rank
-        // Get the squares adjacent to the enpassant file given by first converting to enpassant square 
         while (can_enp) {
             uint8_t sq = pop_lsb(&can_enp);
             moves.push_back(Move(sq, target_sq, ENPASSANT, true));
@@ -111,10 +98,10 @@ void addPawnMoves(Board& b, vector<Move>& moves) {
 void addKnightMoves(Board& b, vector<Move>& moves) {
     uint64_t knights = b.getPieceBitboard(W_KNIGHT, b.getWhiteTurn());
     while(knights) {
-        int sq = pop_lsb(&knights);
+        uint8_t sq = pop_lsb(&knights);
         uint64_t knight_sq = knight_moves[sq] & ~friendly_occ_sq;
         while(knight_sq) {
-            int target_sq = pop_lsb(&knight_sq);
+            uint8_t target_sq = pop_lsb(&knight_sq);
             moves.push_back(Move(sq, target_sq, 0, ((1ULL << target_sq) & enemy_occ_sq) != 0));
         }
     }
@@ -141,29 +128,29 @@ void addSlidingMoves(Board& b, vector<Move>& moves) {
     uint64_t queens = b.getPieceBitboard(W_QUEEN, whiteTurn);
 
     while(bishops) {
-        int from_sq = pop_lsb(&bishops);
+        uint8_t from_sq = pop_lsb(&bishops);
         uint64_t attacked_sq = getBishopAttacks(all_occ_sq, from_sq) & ~friendly_occ_sq;
         while(attacked_sq) {
-            int to_sq = pop_lsb(&attacked_sq);
+            uint8_t to_sq = pop_lsb(&attacked_sq);
             moves.push_back(Move(from_sq, to_sq, 0, (1ULL << to_sq) & enemy_occ_sq));
         }
     }
 
     while(rooks) {
-        int from_sq = pop_lsb(&rooks);
+        uint8_t from_sq = pop_lsb(&rooks);
         uint64_t attacked_sq = getRookAttacks(all_occ_sq, from_sq) & ~friendly_occ_sq;
         while(attacked_sq) {
-            int to_sq = pop_lsb(&attacked_sq);
+            uint8_t to_sq = pop_lsb(&attacked_sq);
             moves.push_back(Move(from_sq, to_sq, 0, (1ULL << to_sq) & enemy_occ_sq));
         }
     }
 
     while(queens) {
-        int from_sq = pop_lsb(&queens);
+        uint8_t from_sq = pop_lsb(&queens);
         uint64_t attacked_sq = (getRookAttacks(all_occ_sq, from_sq) 
                             | getBishopAttacks(all_occ_sq, from_sq)) & ~friendly_occ_sq;
         while(attacked_sq) {
-            int to_sq = pop_lsb(&attacked_sq);
+            uint8_t to_sq = pop_lsb(&attacked_sq);
             moves.push_back(Move(from_sq, to_sq, 0, (1ULL << to_sq) & enemy_occ_sq));
         }
     }
@@ -172,10 +159,11 @@ void addSlidingMoves(Board& b, vector<Move>& moves) {
 
 void addKingMoves(Board& b, vector<Move>& moves) {
     uint64_t king = b.getPieceBitboard(W_KING, b.getWhiteTurn());
-    int sq = pop_lsb(&king);
+    if (!king) return;
+    uint8_t sq = pop_lsb(&king);
     uint64_t king_sq = king_moves[sq] & ~friendly_occ_sq;
     while(king_sq) {
-        int target_sq = pop_lsb(&king_sq);
+        uint8_t target_sq = pop_lsb(&king_sq);
         moves.push_back(Move(sq, target_sq, 0, ((1ULL << target_sq) & enemy_occ_sq) != 0));
     }
 
