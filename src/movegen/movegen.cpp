@@ -49,8 +49,7 @@ vector<Move> generateMoves(Board& b) {
     vector<Move> new_moves;
     for (Move m: moves) {
         uint64_t from_sq = 1ULL << m.getFromSq();
-        uint64_t to_sq = 1ULL << m.getToSq();
-        if (((pinned_pieces & from_sq) || m.getMoveFlag() == ENPASSANT) && has_attackers(!white, king_sq, all_occ_sq ^ from_sq | to_sq, to_sq, b))  {
+        if (((pinned_pieces & from_sq) || (m.getMoveFlag() == ENPASSANT)) && square_attacked_after_move(!white, king_sq, m, all_occ_sq, b)) {
             // cout <<  "pruning: " << m.getName() << "\n";
             continue;
         }
@@ -58,6 +57,19 @@ vector<Move> generateMoves(Board& b) {
     }
 
     return new_moves;
+}
+
+bool square_attacked_after_move(bool attacker_colour, uint8_t sq, Move m, uint64_t base_occupancy, Board& b) {
+    uint64_t from_sq = 1ULL << m.getFromSq();
+    uint64_t to_sq = 1ULL << m.getToSq();
+    uint64_t modified_occ = base_occupancy ^ from_sq | to_sq;
+
+    if (m.getMoveFlag() == ENPASSANT) {
+        uint64_t captured_pawn_sq = shift(to_sq,(white ? SOUTH : NORTH));
+        modified_occ ^= captured_pawn_sq;
+    }
+
+    return has_attackers(attacker_colour, sq, modified_occ, to_sq, b) != 0;
 }
 
 
@@ -260,10 +272,7 @@ uint64_t has_attackers(bool colour, uint8_t sq, uint64_t occ, uint64_t to_sq, Bo
              (king_moves[sq] & b.getPieceBitboard(W_KING, colour)));
 }
 
-
-// Returns the ray between 2 squares inclusive of sq_2 . if no ray, returns 1ULL << sq2
 uint64_t ray_between(int sq_1, int sq_2) {
-    // ray_between_table starts at sq_2 and goes past sq_1. 
     return ray_between_table[sq_2][sq_1];
 }
 

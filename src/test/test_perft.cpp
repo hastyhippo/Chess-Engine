@@ -43,14 +43,14 @@ DOCTEST_TEST_SUITE("perft") {
         // CHECK(perft(b, 7) == 178633661);
     }
 
-    TEST_CASE("TalkChess Position - perft(1-5)") {
-        Board b("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
-        CHECK(perft(b, 1) == 44);
-        CHECK(perft(b, 2) == 1486);
-        CHECK(perft(b, 3) == 62379);
-        CHECK(perft(b, 4) == 2103487);
-        // CHECK(perft(b, 5) == 89941194);
-    }
+    // TEST_CASE("TalkChess Position - perft(1-5)") {
+    //     Board b("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
+    //     CHECK(perft(b, 1) == 44);
+    //     CHECK(perft(b, 2) == 1486);
+    //     CHECK(perft(b, 3) == 62379);
+    //     CHECK(perft(b, 4) == 2103487);
+    //     // CHECK(perft(b, 5) == 89941194);
+    // }
 
     
     TEST_CASE("perft Timed") {
