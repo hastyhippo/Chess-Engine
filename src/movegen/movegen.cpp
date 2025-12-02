@@ -6,15 +6,17 @@
 uint64_t friendly_occ_sq;
 uint64_t enemy_occ_sq;
 uint64_t all_occ_sq;
+bool white;
 
 template <GenType Type>
 vector<Move> generateMoves(Board& b) {
-    bool white = b.getWhiteTurn();
+    white = b.getWhiteTurn();
     preCalculations(b);
     vector<Move> moves;
 
-    int num_attackers = 0;
-    uint64_t attacked_sq = 0ULL;
+    uint8_t king_sq = _tzcnt_u64(b.getPieceBitboard(W_KING, white));
+    uint64_t attackers = attackers_to(!white, king_sq, all_occ_sq, b);
+    int num_attackers = __popcnt64(attackers);
 
     uint64_t valid_sq = Type == EVASIONS ? ~0ULL :  // TODO: implement get_blockers() for EVASIONS
                         Type == CAPTURES ? enemy_occ_sq :
@@ -26,7 +28,7 @@ vector<Move> generateMoves(Board& b) {
         addSlidingMoves(b, moves, valid_sq); 
     }
 
-    addKingMoves(b, moves, ~attacked_sq);
+    addKingMoves(b, moves);
     return moves;
 }
 
@@ -39,7 +41,6 @@ void preCalculations(Board& b) {
 // Use template here because knowing if we calculate captures only can prune out chunks of logic
 template<GenType Type>
 void addPawnMoves(Board& b, vector<Move>& moves, uint64_t valid_sq) {
-    bool white = b.getWhiteTurn();
     int forward = white ? NORTH : SOUTH;
 
     uint64_t pawns = b.getPieceBitboard(W_PAWN, white);
@@ -116,7 +117,9 @@ void addPawnMoves(Board& b, vector<Move>& moves, uint64_t valid_sq) {
                 moves.push_back(Move(sq, target_sq, ENPASSANT, true));
             }
         }    
-    }}
+    }
+}
+
 
 void addKnightMoves(Board& b, vector<Move>& moves, uint64_t valid_sq) {
     uint64_t knights = b.getPieceBitboard(W_KNIGHT, b.getWhiteTurn());
@@ -145,10 +148,9 @@ uint64_t getRookAttacks(uint64_t occ, int sq) {
 }
 
 void addSlidingMoves(Board& b, vector<Move>& moves, uint64_t valid_sq) {
-    bool whiteTurn = b.getWhiteTurn();
-    uint64_t bishops = b.getPieceBitboard(W_BISHOP, whiteTurn);
-    uint64_t rooks = b.getPieceBitboard(W_ROOK, whiteTurn);
-    uint64_t queens = b.getPieceBitboard(W_QUEEN, whiteTurn);
+    uint64_t bishops = b.getPieceBitboard(W_BISHOP, white);
+    uint64_t rooks = b.getPieceBitboard(W_ROOK, white);
+    uint64_t queens = b.getPieceBitboard(W_QUEEN, white);
 
     while(bishops) {
         uint8_t from_sq = pop_lsb(&bishops);
@@ -180,22 +182,49 @@ void addSlidingMoves(Board& b, vector<Move>& moves, uint64_t valid_sq) {
 }
 
 
-void addKingMoves(Board& b, vector<Move>& moves, uint64_t valid_sq) {
-    uint64_t king = b.getPieceBitboard(W_KING, b.getWhiteTurn());
+void addKingMoves(Board& b, vector<Move>& moves) {
+    uint64_t king = b.getPieceBitboard(W_KING, white);
     if (!king) return;
+
     uint8_t sq = pop_lsb(&king);
-    uint64_t king_sq = king_moves[sq] & ~friendly_occ_sq & valid_sq;
+    uint64_t king_sq = king_moves[sq] & ~friendly_occ_sq;
+
     while(king_sq) {
         uint8_t target_sq = pop_lsb(&king_sq);
+        if (attackers_to(!white, target_sq, all_occ_sq, b)) continue;
         moves.push_back(Move(sq, target_sq, 0, ((1ULL << target_sq) & enemy_occ_sq) != 0));
     }
-
     //Castling
     for (int i = 0; i < 2; i++) {
-        if (!(all_occ_sq & castling_clear_sq[b.getWhiteTurn()][i])) {
-            moves.push_back(Move(sq, castling_target_sq[1 - b.getWhiteTurn()][i], CASTLE, false));
+        if ((b.getCastlingRights() & (1ULL << (i + (white ? 0 : 2)))) != 0 && (all_occ_sq & castling_clear_sq[1 - white][i]) == 0) {
+            uint64_t cleared_sq = castling_clear_sq[1 - white][i];
+            bool can_castle = true;
+            while(cleared_sq) {
+                uint8_t clear_sq = pop_lsb(&cleared_sq);
+                can_castle = !has_attackers(!white, clear_sq, all_occ_sq, b);
+                if (!can_castle) break;
+            }
+            if (can_castle) {
+                moves.push_back(Move(sq, castling_target_sq[1 - white][i], CASTLE, false));
+            }
         }
     }
+}
+
+uint64_t attackers_to(bool colour, uint8_t sq, uint64_t occ, Board& b) { // attacker colour
+    return  (pawn_attacks[colour][sq] & b.getPieceBitboard(W_PAWN, colour)) |
+            (knight_moves[sq] & b.getPieceBitboard(W_KNIGHT, colour)) |
+            (getBishopAttacks(occ, sq) & (b.getPieceBitboard(W_BISHOP, colour) | b.getPieceBitboard(W_QUEEN, colour))) | 
+            (getRookAttacks(occ, sq) & (b.getPieceBitboard(W_ROOK, colour) | b.getPieceBitboard(W_QUEEN, colour))) | 
+            (king_moves[sq] & b.getPieceBitboard(W_KING, colour));
+}
+
+uint64_t has_attackers(bool colour, uint8_t sq, uint64_t occ, Board& b) { // attacker colour
+    return  !(!(pawn_attacks[colour][sq] & b.getPieceBitboard(W_PAWN, colour)) &&
+              !(knight_moves[sq] & b.getPieceBitboard(W_KNIGHT, colour)) &&
+              !(getBishopAttacks(occ, sq) & (b.getPieceBitboard(W_BISHOP, colour) | b.getPieceBitboard(W_QUEEN, colour))) &&
+              !(getRookAttacks(occ, sq) & (b.getPieceBitboard(W_ROOK, colour) | b.getPieceBitboard(W_QUEEN, colour))) &&
+              !(king_moves[sq] & b.getPieceBitboard(W_KING, colour)));
 }
 
 template vector<Move> generateMoves<ALL_MOVES>(Board& b);
