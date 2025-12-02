@@ -9,8 +9,8 @@ using namespace std;
 #define N_SQUARES 64
 #define N_PIECE_TYPES 6
 
-#define KINGSIDE 1
-#define QUEENSIDE 0
+#define KINGSIDE 0
+#define QUEENSIDE 1
 
 class Board;
 // using the Fancy approach: https://www.chessprogramming.org/Magic_Bitboards
@@ -210,10 +210,17 @@ constexpr uint64_t castling_rook_moves[2][2] = {
     {H_1 | F_1, A_1 | D_1},
     {H_8 | F_8, A_8 | D_8}
 };
+
 constexpr uint64_t castling_clear_sq[2][2] = {
     {G_1 | F_1, B_1 | C_1 | D_1},
     {G_8 | F_8, B_8 | C_8 | D_8}
 };
+
+constexpr uint64_t castling_unattacked_sq[2][2] = {
+    {G_1 | F_1,  C_1 | D_1},
+    {G_8 | F_8,  C_8 | D_8}
+};
+
 constexpr uint64_t castling_target_sq[2][2] = {
     {6, 2},
     {62, 58}

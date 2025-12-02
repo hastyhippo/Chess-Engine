@@ -7,6 +7,7 @@ uint64_t friendly_occ_sq;
 uint64_t enemy_occ_sq;
 uint64_t all_occ_sq;
 uint64_t pinned_pieces;
+bool in_check;
 bool white;
 
 template <GenType Type>
@@ -30,7 +31,7 @@ vector<Move> generateMoves(Board& b) {
     vector<Move> moves;
     uint64_t attackers = attackers_to(!white, king_sq, all_occ_sq, b);
     int num_attackers = __popcnt64(attackers);
-    bool in_check = num_attackers > 0;
+    in_check = num_attackers > 0;
     uint64_t valid_sq = (Type == EVASIONS) ? ray_between(king_sq, _tzcnt_u64(attackers)) :
                         Type == CAPTURES ? enemy_occ_sq :
                         Type == QUIET ? ~enemy_occ_sq : ~0ULL;
@@ -48,8 +49,9 @@ vector<Move> generateMoves(Board& b) {
     vector<Move> new_moves;
     for (Move m: moves) {
         uint64_t from_sq = 1ULL << m.getFromSq();
-        if (((pinned_pieces & from_sq) || (m.getMoveFlag() == ENPASSANT)) && has_attackers(!white, king_sq, all_occ_sq ^ from_sq ^  (1ULL << m.getToSq()), b))  {
-            // cout << "discarded: " << m.getName() << "\n";
+        uint64_t to_sq = 1ULL << m.getToSq();
+        if (((pinned_pieces & from_sq) || m.getMoveFlag() == ENPASSANT) && has_attackers(!white, king_sq, all_occ_sq ^ from_sq | to_sq, to_sq, b))  {
+            // cout <<  "pruning: " << m.getName() << "\n";
             continue;
         }
         new_moves.push_back(m);
@@ -66,6 +68,7 @@ void addPawnMoves(Board& b, vector<Move>& moves, uint64_t valid_sq) {
 
     uint64_t pawns = b.getPieceBitboard(W_PAWN, white);
     uint64_t pr_rank = white ? RANK_8 : RANK_1; // promotion rank
+    uint64_t pr2_rank = white ? RANK_7 : RANK_2; // promotion rank
 
     if constexpr (Type != CAPTURES) {
         uint64_t push1_pawns = shift(pawns, forward) & ~all_occ_sq;
@@ -98,7 +101,7 @@ void addPawnMoves(Board& b, vector<Move>& moves, uint64_t valid_sq) {
     }
 
     if constexpr (Type == CAPTURES || Type == EVASIONS || Type == ALL_MOVES) {
-        uint64_t capt_pawns = pawns & ~pr_rank;
+        uint64_t capt_pawns = pawns & ~pr2_rank;
         while(capt_pawns) {
             uint8_t pawn_sq = pop_lsb(&capt_pawns);
             uint64_t attack_bb = pawn_attacks[1 - white][pawn_sq] & enemy_occ_sq;
@@ -109,7 +112,7 @@ void addPawnMoves(Board& b, vector<Move>& moves, uint64_t valid_sq) {
                 moves.push_back(Move(pawn_sq, to_sq, 0, true));
             }
         }
-        uint64_t pr_capt_pawns = pawns & pr_rank;
+        uint64_t pr_capt_pawns = pawns & pr2_rank;
         while(pr_capt_pawns) {
             uint8_t pawn_sq = pop_lsb(&pr_capt_pawns);
             uint64_t attack_bb = pawn_attacks[1 - white][pawn_sq] & enemy_occ_sq;
@@ -127,8 +130,8 @@ void addPawnMoves(Board& b, vector<Move>& moves, uint64_t valid_sq) {
         // ENPASSANT
         int enp_sq = b.getEnpassantSquare();
         if (enp_sq != NO_ENP) {
-            uint64_t can_enp = enp_sq != 0 ? get_file[enp_sq + WEST] : 0;
-            can_enp |= enp_sq != N - 1 ? get_file[enp_sq + EAST] : 0;
+            uint64_t can_enp = (enp_sq != 0) ? get_file[enp_sq + WEST] : 0;
+            can_enp |= (enp_sq != N - 1) ? get_file[enp_sq + EAST] : 0;
     
             can_enp &= (white ? RANK_5 : RANK_4) & pawns;
     
@@ -137,7 +140,7 @@ void addPawnMoves(Board& b, vector<Move>& moves, uint64_t valid_sq) {
                 uint8_t sq = pop_lsb(&can_enp);
                 moves.push_back(Move(sq, target_sq, ENPASSANT, true));
             }
-        }    
+        }
     }
 }
 
@@ -212,13 +215,14 @@ void addKingMoves(Board& b, vector<Move>& moves) {
 
     while(king_sq) {
         uint8_t target_sq = pop_lsb(&king_sq);
-        if (attackers_to(!white, target_sq, all_occ_sq, b)) continue;
+        if (attackers_to(!white, target_sq, all_occ_sq ^ (1ULL << sq), b)) continue;
         moves.push_back(Move(sq, target_sq, 0, ((1ULL << target_sq) & enemy_occ_sq) != 0));
     }
+    if (in_check) return;
     //Castling
     for (int i = 0; i < 2; i++) {
         if ((b.getCastlingRights() & (1ULL << (i + (white ? 0 : 2)))) != 0 && (all_occ_sq & castling_clear_sq[1 - white][i]) == 0) {
-            uint64_t cleared_sq = castling_clear_sq[1 - white][i];
+            uint64_t cleared_sq = castling_unattacked_sq[1 - white][i];
             bool can_castle = true;
             while(cleared_sq) {
                 uint8_t clear_sq = pop_lsb(&cleared_sq);
@@ -241,12 +245,21 @@ uint64_t attackers_to(bool colour, uint8_t sq, uint64_t occ, Board& b) { // atta
 }
 
 uint64_t has_attackers(bool colour, uint8_t sq, uint64_t occ, Board& b) { // attacker colour
-    return  !(!(pawn_attacks[colour][sq] & occ & b.getPieceBitboard(W_PAWN, colour)) &&
-              !(knight_moves[sq] & occ & b.getPieceBitboard(W_KNIGHT, colour)) &&
-              !(getBishopAttacks(occ, sq) & occ & (b.getPieceBitboard(W_BISHOP, colour) | b.getPieceBitboard(W_QUEEN, colour))) &&
-              !(getRookAttacks(occ, sq) & occ & (b.getPieceBitboard(W_ROOK, colour) | b.getPieceBitboard(W_QUEEN, colour))) &&
-              !(king_moves[sq] & b.getPieceBitboard(W_KING, colour)));
+    return  ((pawn_attacks[colour][sq] & b.getPieceBitboard(W_PAWN, colour)) ||
+              (knight_moves[sq] & b.getPieceBitboard(W_KNIGHT, colour)) ||
+              (getBishopAttacks(occ, sq) & (b.getPieceBitboard(W_BISHOP, colour) | b.getPieceBitboard(W_QUEEN, colour))) ||
+              (getRookAttacks(occ, sq) & (b.getPieceBitboard(W_ROOK, colour) | b.getPieceBitboard(W_QUEEN, colour))) ||
+             (king_moves[sq] & b.getPieceBitboard(W_KING, colour)));
 }
+
+uint64_t has_attackers(bool colour, uint8_t sq, uint64_t occ, uint64_t to_sq, Board& b) { // attacker colour
+    return  ((pawn_attacks[colour][sq] & b.getPieceBitboard(W_PAWN, colour) & ~to_sq) ||
+              (knight_moves[sq] & b.getPieceBitboard(W_KNIGHT, colour) & ~to_sq) ||
+              (getBishopAttacks(occ, sq) & (b.getPieceBitboard(W_BISHOP, colour) | b.getPieceBitboard(W_QUEEN, colour)) & ~to_sq) ||
+              (getRookAttacks(occ, sq) & (b.getPieceBitboard(W_ROOK, colour) | b.getPieceBitboard(W_QUEEN, colour)) & ~to_sq) ||
+             (king_moves[sq] & b.getPieceBitboard(W_KING, colour)));
+}
+
 
 // Returns the ray between 2 squares inclusive of sq_2 . if no ray, returns 1ULL << sq2
 uint64_t ray_between(int sq_1, int sq_2) {

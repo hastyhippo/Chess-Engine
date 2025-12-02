@@ -40,20 +40,22 @@ int main(int argc, char** argv) {
     // }
     // assert(moves2.size() == moves.size());
     
-    // while(true) {
-    //     string s;
-    //     getline(cin, s);
-    //     Board b(s);
-    //     vector<Move> moves = generateMoves<ALL_MOVES>(b);
-    //     cout << "STARTING POSITION\n";
-    //     for (Move a : moves) {
-    //         cout << "MOVE: " << a.getName() << "\n";
-    //         b.makeMove(a);
-    //         b.printBoard();
-    //         b.unmakeMove();
-    //     }
-    
-    // }
+    while(true) {
+        string s;
+        getline(cin, s);
+        Board b(s);
+        int depth;
+        vector<Move> moves = generateMoves<ALL_MOVES>(b);
+        for (Move a : moves) {
+            cout << "MOVE: " << a.getName() << "\n";
+            b.makeMove(a);
+            b.printBoard();
+            b.unmakeMove();
+        }
+        cin >> depth;
+        vector<string> v;
+        divided_perft(b, depth, 1, v);
+    }
     // Board b("k2r4/8/7b/8/4p1n1/8/4K3/1q6 w - - 0 1");
     // // Board b("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
 
@@ -67,34 +69,26 @@ int main(int argc, char** argv) {
     // }
     vector<string> v;
     // divided_perft(b, 3,  1,   v);
-    Board b2("rnb1kbnr/pp1ppppp/8/q1p5/8/3P4/PPPKPPPP/RNBQ1BNR w kq - 0 1");
+    Board b2("r3k2r/p1pNqpb1/bn2pnp1/3P4/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1");
     vector<Move> moves = generateMoves<ALL_MOVES>(b2);
-    cout << "STARTING POSITION\n";
+    // b2.printBoard();
+    // cout << "STARTING POSITION\n";
+    cout <<  moves.size() << "\n";
     for (Move a : moves) {
-        cout << "MOVE: " << a.getName() << "\n";
-        b2.makeMove(a);
-        b2.printBoard();
-        b2.unmakeMove();
+        cout  << a.getName() << "\n";
+        // b2.makeMove(a);
+        // b2.printBoard();
+        // b2.unmakeMove();
     }
 
-    divided_perft(b2, 3, 1, v);
+    divided_perft(b2, 1, 0, v);
+
+    // for (int i = 3; i >= 1; i--) {
+    //     divided_perft()
+    // }
 }
 
-// d2d3 | nodes: 328515 -> 328511
 /*
-c7c6 | nodes: 15207 -> 15206
-e1d2 | nodes: 488 -> 487
-
-
-
-e7e6 | nodes: 21625
-c7c5 | nodes: 15972
-e7e5 | nodes: 21640
-
-c7c6: 15206
-e7e6: 21624
-c7c5: 15971
-e7e5: 21639
 */
 
 

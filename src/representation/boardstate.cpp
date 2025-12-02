@@ -39,8 +39,7 @@ uint8_t BoardState::getHalfMoveClock() {
 }
 
 uint8_t BoardState::getEnpassantSquare() {
-    uint8_t file = (this->board_info & ENPASSANT_BITMASK) >> 10;
-    return file ? file : NO_ENP;
+    return (this->board_info & ENPASSANT_BITMASK) >> 10;
 }
 
 void BoardState::setBoardInfo(uint16_t new_info) {
@@ -77,7 +76,7 @@ void BoardState::makeMove(Move& move, bool white) {
     colour_bb[white ? 0 : 1] ^= (1ULL << from_sq);
     pieces_arr[from_sq] = EMPTY_SQ;
 
-    uint8_t new_piece = move.isPromo() ? move.promoPiece() : moved_piece;
+    uint8_t new_piece = move.isPromo() ? move.promoPiece() + (white? 0 : 6) : moved_piece;
     piece_bb[new_piece % 6] ^= (1ULL << to_sq);
     colour_bb[white ? 0 : 1] ^= (1ULL << to_sq);
     pieces_arr[to_sq] = new_piece;
@@ -85,7 +84,7 @@ void BoardState::makeMove(Move& move, bool white) {
 
     uint8_t enp_file = NO_ENP;
     if (move_flag == DOUBLE_PUSH) {
-        enp_file = to_sq % 8;
+        enp_file = (to_sq % 8);
     } else if (move_flag == CASTLE) {
         int side = ((1ULL << to_sq) & G_FILE) ? KINGSIDE : QUEENSIDE;
         uint64_t rook_move_bb = castling_rook_moves[white ? 0 : 1][side];

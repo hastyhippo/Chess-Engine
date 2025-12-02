@@ -54,6 +54,8 @@ Board::Board(string FEN) {
     
     if(fen_split[3] != "-") {
         new_board_info |= ((fen_split[3][0] - 'a') << 10);
+    } else {
+        new_board_info |= (NO_ENP) << 10;
     }
 
     new_board_info |= stoi(fen_split[4]) << 4;
