@@ -19,3 +19,30 @@ string Move::getName() {
     }
     return res;
 }
+
+uint8_t Move::getToSq() {
+    return this->to_sq;
+}
+uint8_t Move::getFromSq() {
+    return this->from_sq;
+}
+uint8_t Move::getMoveFlag() {
+    return this->move_flag;
+}
+bool Move::isCapture() {
+    return this->capture;
+}
+
+bool Move::isPromo() {
+    return move_flag >= PROMOTION_KNIGHT && move_flag <= PROMOTION_QUEEN;
+}
+
+uint8_t Move::promoPiece() {
+    switch(move_flag) {
+        case PROMOTION_QUEEN: return W_QUEEN;
+        case PROMOTION_ROOK: return W_ROOK;
+        case PROMOTION_BISHOP: return W_BISHOP;
+        case PROMOTION_KNIGHT: return W_KNIGHT;
+    }
+    return -1;
+} 

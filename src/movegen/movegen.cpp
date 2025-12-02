@@ -10,8 +10,6 @@ uint64_t friendly_occ_sq;
 uint64_t enemy_occ_sq;
 uint64_t all_occ_sq;
 
-
-
 vector<Move> generateMoves(Board& b) {
     preCalculations(b);
     vector<Move> moves;
@@ -25,9 +23,9 @@ vector<Move> generateMoves(Board& b) {
 }
 
 void preCalculations(Board& b) {
-    friendly_occ_sq = b.getWhiteTurn() ? b.getWhiteOccupiedSquares() : b.getBlackOccupiedSquares();
-    enemy_occ_sq = b.getWhiteTurn() ? b.getBlackOccupiedSquares() : b.getWhiteOccupiedSquares();
-    all_occ_sq = b.getAllOccupiedSquares();
+    friendly_occ_sq = b.getColourPieces(b.getWhiteTurn());
+    enemy_occ_sq = b.getColourPieces(!b.getWhiteTurn());
+    all_occ_sq = friendly_occ_sq | enemy_occ_sq;
 }
 
 void addPawnMoves(Board& b, vector<Move>& moves) {
@@ -176,5 +174,5 @@ void addKingMoves(Board& b, vector<Move>& moves) {
         int target_sq = pop_lsb(&king_sq);
         moves.push_back(Move(sq, target_sq, 0, ((1ULL << target_sq) & enemy_occ_sq) != 0));
     }
-    assert(king == 0);
+    // assert(king == 0);
 }

@@ -93,7 +93,10 @@ uint64_t Board::getPieceBitboard(PieceType piece_type, bool current_player) {
 
 void Board::addPieceBitboard(PieceType piece_type, uint64_t to_add) {
     this->board_state.addPieceBitboard(piece_type, to_add);
-    updateOccupiedSquares();
+}
+
+uint64_t Board::getColourPieces(bool white) {
+    return this->board_state.getColourPieces(white);
 }
 
 uint8_t Board::getCastlingRights() {
@@ -112,32 +115,19 @@ bool Board::getWhiteTurn() {
     return (this->white_turn);
 }
 
-void Board::updateOccupiedSquares() {
-    white_occupied_squares = 0ULL;
-    black_occupied_squares = 0ULL;
-    for (int i = 0; i < 6; i++) {
-        white_occupied_squares |= board_state.getPieceBitboard((PieceType)i);
-        black_occupied_squares |= board_state.getPieceBitboard((PieceType)(i + 6));
-    }
-    all_occupied_squares = white_occupied_squares | black_occupied_squares;
-}
-
-uint64_t Board::getAllOccupiedSquares() {
-    return all_occupied_squares;
-}
-
-uint64_t Board::getWhiteOccupiedSquares() {
-    return white_occupied_squares;
-}
-
-uint64_t Board::getBlackOccupiedSquares() {
-    return black_occupied_squares;
-}
-
 void Board::makeMove(Move& move) {
+    board_state.makeMove(move, white_turn);
+    state_history.push(board_state);
 
+    this->move_number++;
+    this->white_turn = !this->white_turn;
 }
 
 void Board::unmakeMove() {
+    BoardState prev_state = state_history.top();
+    state_history.pop();
 
+    this->move_number--;
+    this->white_turn = !this->white_turn;
+    this->board_state = prev_state;
 }

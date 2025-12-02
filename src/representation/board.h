@@ -12,16 +12,10 @@ class Move;
 class Board {
     private: 
         bool white_turn;
-        // castling (4 bits) halfmoves (6 bits) enpassant (3 bits)
         uint16_t move_number;
 
-        // uint16_t board_info;
         // uint64_t piece_bitboards[12];
         BoardState board_state;
-
-        uint64_t all_occupied_squares;
-        uint64_t white_occupied_squares;
-        uint64_t black_occupied_squares;
 
         stack<BoardState> state_history;
         
@@ -39,10 +33,7 @@ class Board {
         void setBoardInfo(uint16_t new_info);
 
         bool getWhiteTurn();
-        uint64_t getAllOccupiedSquares();
-        uint64_t getWhiteOccupiedSquares();
-        uint64_t getBlackOccupiedSquares();
-
+        uint64_t getColourPieces(bool white);    
         void makeMove(Move& move);
         void unmakeMove();
         void printBoard();

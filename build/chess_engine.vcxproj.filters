@@ -19,6 +19,9 @@
     <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\representation\board.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\representation\boardstate.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\search\eval.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

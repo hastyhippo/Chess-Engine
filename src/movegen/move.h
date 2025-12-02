@@ -13,11 +13,19 @@ using namespace std;
 
 class Move {
     private:
-        uint64_t from_sq;
-        uint64_t to_sq;
+        uint8_t from_sq;
+        uint8_t to_sq;
         uint8_t move_flag;
         bool capture;
     public:
         Move(uint8_t from_sq, uint8_t to_sq, uint8_t move_flag, bool capture);
         string getName();
+    
+        uint8_t getToSq();
+        uint8_t getFromSq();
+        uint8_t getMoveFlag();
+        bool isCapture();
+        bool isPromo();
+        uint8_t promoPiece();
+
 };

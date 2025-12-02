@@ -4,6 +4,7 @@ C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\misc\defines.cpp;C:\Use
 C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\movegen\move.cpp;C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\build\chess_engine.dir\Debug\move.obj
 C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\movegen\movegen.cpp;C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\build\chess_engine.dir\Debug\movegen.obj
 C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\representation\board.cpp;C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\build\chess_engine.dir\Debug\board.obj
+C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\representation\boardstate.cpp;C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\build\chess_engine.dir\Debug\boardstate.obj
 C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\search\eval.cpp;C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\build\chess_engine.dir\Debug\eval.obj
 C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\search\search.cpp;C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\build\chess_engine.dir\Debug\search.obj
 C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\test\test_movegen.cpp;C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\build\chess_engine.dir\Debug\test_movegen.obj

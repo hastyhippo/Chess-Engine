@@ -133,7 +133,16 @@ constexpr int rook_m_bits[64] = {
     11, 10, 10, 10, 10, 10, 10, 11,
     12, 11, 11, 11, 11, 11, 11, 12
 };
-
+constexpr uint8_t castling_mask[64] = {
+    0b0010, 0b0000, 0b0000, 0b0000, 0b0011, 0b0000, 0b0000, 0b0001,  // a1 loses Q, e1 loses KQ, h1 loses K
+    0b0000, 0b0000, 0b0000, 0b0000, 0b0000, 0b0000, 0b0000, 0b0000,
+    0b0000, 0b0000, 0b0000, 0b0000, 0b0000, 0b0000, 0b0000, 0b0000,
+    0b0000, 0b0000, 0b0000, 0b0000, 0b0000, 0b0000, 0b0000, 0b0000,
+    0b0000, 0b0000, 0b0000, 0b0000, 0b0000, 0b0000, 0b0000, 0b0000,
+    0b0000, 0b0000, 0b0000, 0b0000, 0b0000, 0b0000, 0b0000, 0b0000,
+    0b0000, 0b0000, 0b0000, 0b0000, 0b0000, 0b0000, 0b0000, 0b0000,
+    0b1000, 0b0000, 0b0000, 0b0000, 0b1100, 0b0000, 0b0000, 0b0100   // a8 loses q, e8 loses kq, h8 loses k
+};;
 
 // Move generation
 extern SMagic m_rook_tbl[64];
@@ -170,6 +179,11 @@ constexpr uint64_t RANK_5 = 0x000000FF00000000ULL;
 constexpr uint64_t RANK_6 = 0x0000FF0000000000ULL;
 constexpr uint64_t RANK_7 = 0x00FF000000000000ULL;
 constexpr uint64_t RANK_8 = 0xFF00000000000000ULL;
+
+constexpr uint64_t castling_rook_moves[2][2] = {
+    {(1ULL << 7) | (1ULL << 5), (1ULL << 0) | (1ULL << 3)},
+    {(1ULL << 63) | (1ULL << 61), (1ULL << 56) | (1ULL << 59)}
+};
 
 uint64_t perft(Board &b, int depth);
 uint64_t shift(uint64_t bb, int offset);
