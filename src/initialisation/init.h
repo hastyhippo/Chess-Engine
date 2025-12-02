@@ -2,4 +2,5 @@
 #include "../misc/defines.h"
 
 
-void Initialise();
+void init();
+void initialiseMoveGeneration();

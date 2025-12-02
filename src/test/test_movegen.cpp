@@ -8,9 +8,9 @@
 DOCTEST_TEST_SUITE("move generation correctness") {
     TEST_CASE("Pawn moves flipped") {
         Board b("b1n5/PP4B1/1P4P1/3Pp3/3P4/P3bpqp/PP3PPP/1K5k w - e6 0 1");
-        vector<Move> moves = generateMoves(b);
+        vector<Move> moves = generateMoves<ALL_MOVES>(b);
         Board b2("1k5K/pp3ppp/p3BPQP/3p4/3pP3/1p4p1/pp4b1/B1N5 b - e3 0 1");
-        vector<Move> moves2 = generateMoves(b2);
+        vector<Move> moves2 = generateMoves<ALL_MOVES>(b2);
         CHECK(moves2.size() == moves.size());    
     }
 

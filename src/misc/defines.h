@@ -9,7 +9,8 @@ using namespace std;
 #define N_SQUARES 64
 #define N_PIECE_TYPES 6
 
-#define COL_A 
+#define KINGSIDE 1
+#define QUEENSIDE 0
 
 class Board;
 // using the Fancy approach: https://www.chessprogramming.org/Magic_Bitboards
@@ -22,6 +23,8 @@ struct SMagic {
 
 enum PieceType {W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING, 
                 B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING};
+
+enum GenType {CAPTURES, EVASIONS, QUIET, ALL_MOVES};
 
 vector<string>splitString(const string& input, const char delimiter);
 void printBB(uint64_t bb);
@@ -166,8 +169,7 @@ extern uint64_t bishop_masks[64];
 
 constexpr uint8_t EMPTY_SQ = 15;
 constexpr uint8_t NO_ENP = 8;
-#define KINGSIDE 1
-#define QUEENSIDE 0
+
 
 
 constexpr int N = 8;
@@ -206,12 +208,10 @@ constexpr uint64_t castling_rook_moves[2][2] = {
     {H_1 | F_1, A_1 | D_1},
     {H_8 | F_8, A_8 | D_8}
 };
-
 constexpr uint64_t castling_clear_sq[2][2] = {
     {G_1 | F_1, B_1 | C_1 | D_1},
     {G_8 | F_8, B_8 | C_8 | D_8}
 };
-
 constexpr uint64_t castling_target_sq[2][2] = {
     {6, 2},
     {62, 58}
@@ -222,7 +222,6 @@ uint64_t divided_perft(Board &b, int depth, vector<string>& moves);
 
 uint64_t perft(Board &b, int depth);
 uint64_t shift(uint64_t bb, int offset);
-void initialiseMoveGeneration();
 
 inline uint8_t pop_lsb(uint64_t* b) {
     uint8_t sq = _tzcnt_u64(*b);

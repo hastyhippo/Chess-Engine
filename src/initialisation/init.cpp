@@ -11,7 +11,7 @@ static void initialiseMagics();
 static void initialiseKingMoves();
 static void initialisePawnMoves();
 
-void Initialise() {
+void init() {
     initialiseMoveGeneration();
 }
 

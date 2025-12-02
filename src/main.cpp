@@ -12,7 +12,7 @@ using namespace std;
 
 
 int main(int argc, char** argv) {
-    Initialise();
+    init();
     
     for (int i = 1; i < argc; i++) {
         if (string(argv[i]) == "-t") {
@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
     Board b("rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1");
     // Board b("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
 
-    vector<Move> moves = generateMoves(b);
+    vector<Move> moves = generateMoves<ALL_MOVES>(b);
     cout << "STARTING POSITION\n";
     for (Move a : moves) {
         cout << "MOVE: " << a.getName() << "\n";
