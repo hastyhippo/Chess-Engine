@@ -65,8 +65,9 @@ bool square_attacked_after_move(bool attacker_colour, uint8_t sq, Move m, uint64
     uint64_t modified_occ = base_occupancy ^ from_sq | to_sq;
 
     if (m.getMoveFlag() == ENPASSANT) {
-        uint64_t captured_pawn_sq = shift(to_sq,(white ? SOUTH : NORTH));
-        modified_occ ^= captured_pawn_sq;
+        uint64_t captured_pawn = shift(to_sq,(white ? SOUTH : NORTH));
+        modified_occ ^= captured_pawn;
+        to_sq |= captured_pawn;
     }
 
     return has_attackers(attacker_colour, sq, modified_occ, to_sq, b) != 0;
@@ -264,11 +265,11 @@ uint64_t has_attackers(bool colour, uint8_t sq, uint64_t occ, Board& b) { // att
              (king_moves[sq] & b.getPieceBitboard(W_KING, colour)));
 }
 
-uint64_t has_attackers(bool colour, uint8_t sq, uint64_t occ, uint64_t to_sq, Board& b) { // attacker colour
-    return  ((pawn_attacks[colour][sq] & b.getPieceBitboard(W_PAWN, colour) & ~to_sq) ||
-              (knight_moves[sq] & b.getPieceBitboard(W_KNIGHT, colour) & ~to_sq) ||
-              (getBishopAttacks(occ, sq) & (b.getPieceBitboard(W_BISHOP, colour) | b.getPieceBitboard(W_QUEEN, colour)) & ~to_sq) ||
-              (getRookAttacks(occ, sq) & (b.getPieceBitboard(W_ROOK, colour) | b.getPieceBitboard(W_QUEEN, colour)) & ~to_sq) ||
+uint64_t has_attackers(bool colour, uint8_t sq, uint64_t occ, uint64_t ignore_sq, Board& b) { // attacker colour
+    return  ((pawn_attacks[colour][sq] & b.getPieceBitboard(W_PAWN, colour) & ~ignore_sq) ||
+              (knight_moves[sq] & b.getPieceBitboard(W_KNIGHT, colour) & ~ignore_sq) ||
+              (getBishopAttacks(occ, sq) & (b.getPieceBitboard(W_BISHOP, colour) | b.getPieceBitboard(W_QUEEN, colour)) & ~ignore_sq) ||
+              (getRookAttacks(occ, sq) & (b.getPieceBitboard(W_ROOK, colour) | b.getPieceBitboard(W_QUEEN, colour)) & ~ignore_sq) ||
              (king_moves[sq] & b.getPieceBitboard(W_KING, colour)));
 }
 
