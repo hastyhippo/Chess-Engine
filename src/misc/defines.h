@@ -1,7 +1,7 @@
 #pragma once
 
 #include <bits/stdc++.h>
-
+#include "../movegen/move.h";
 using namespace std;
 
 #define N_ROWS 8
@@ -13,6 +13,7 @@ using namespace std;
 #define QUEENSIDE 1
 
 class Board;
+class Move;
 // using the Fancy approach: https://www.chessprogramming.org/Magic_Bitboards
 struct SMagic {
     uint64_t* ptr;
@@ -20,6 +21,8 @@ struct SMagic {
     uint64_t magic;
     int shift;
 };
+
+
 
 enum PieceType {W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING, 
                 B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING};
@@ -173,6 +176,19 @@ constexpr uint8_t EMPTY_SQ = 15;
 constexpr uint8_t NO_ENP = 8;
 
 
+constexpr int MAX_MOVES_GEN = 256;
+
+struct MoveList {
+    Move moves[MAX_MOVES_GEN];
+    int size = 0;
+
+    void add(Move m) {
+        moves[size++] = m;
+    }
+    Move* begin() { return moves; }
+    Move *end() { return moves + size; }
+    Move& operator[](int i) { return moves[i]; }
+};
 
 constexpr int N = 8;
 constexpr int NORTH = N, SOUTH = -N, WEST = -1, EAST = 1;

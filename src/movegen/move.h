@@ -19,6 +19,7 @@ class Move {
         uint8_t move_flag;
         bool capture;
     public:
+        Move() = default;
         Move(uint8_t from_sq, uint8_t to_sq, uint8_t move_flag, bool capture);
         string getName();
     

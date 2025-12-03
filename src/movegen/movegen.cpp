@@ -11,7 +11,7 @@ bool in_check;
 bool white;
 
 template <GenType Type>
-vector<Move> generateMoves(Board& b) {
+MoveList generateMoves(Board& b) {
     white = b.getWhiteTurn();
     friendly_occ_sq = b.getColourPieces(b.getWhiteTurn());
     enemy_occ_sq = b.getColourPieces(!b.getWhiteTurn());
@@ -28,7 +28,7 @@ vector<Move> generateMoves(Board& b) {
         if (__popcnt64(intersect) == 1) pinned_pieces |= intersect;
     }
 
-    vector<Move> moves;
+    MoveList moves{};
     uint64_t attackers = attackers_to(!white, king_sq, all_occ_sq, b);
     int num_attackers = __popcnt64(attackers);
     in_check = num_attackers > 0;
@@ -46,17 +46,17 @@ vector<Move> generateMoves(Board& b) {
 
     addKingMoves(b, moves);
 
-    vector<Move> new_moves;
+    MoveList filtered_moves{};
     for (Move m: moves) {
         uint64_t from_sq = 1ULL << m.getFromSq();
         if (((pinned_pieces & from_sq) || (m.getMoveFlag() == ENPASSANT)) && square_attacked_after_move(!white, king_sq, m, all_occ_sq, b)) {
             // cout <<  "pruning: " << m.getName() << "\n";
             continue;
         }
-        new_moves.push_back(m);
+        filtered_moves.add(m);
     }
 
-    return new_moves;
+    return filtered_moves;
 }
 
 bool square_attacked_after_move(bool attacker_colour, uint8_t sq, Move m, uint64_t base_occupancy, Board& b) {
@@ -76,7 +76,7 @@ bool square_attacked_after_move(bool attacker_colour, uint8_t sq, Move m, uint64
 
 // Use template here because knowing if we calculate captures only can prune out chunks of logic
 template<GenType Type>
-void addPawnMoves(Board& b, vector<Move>& moves, uint64_t valid_sq) {
+void addPawnMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
     int forward = white ? NORTH : SOUTH;
 
     uint64_t pawns = b.getPieceBitboard(W_PAWN, white);
@@ -97,19 +97,19 @@ void addPawnMoves(Board& b, vector<Move>& moves, uint64_t valid_sq) {
         }
         while(push1_pawns) {
             uint8_t sq = pop_lsb(&push1_pawns);
-            moves.push_back(Move(sq - forward, sq, 0, false));
+            moves.add(Move(sq - forward, sq, 0, false));
         }
         while(push2_pawns) {
             uint8_t sq = pop_lsb(&push2_pawns);
-            moves.push_back(Move(sq - 2 * forward, sq, DOUBLE_PUSH, false));
+            moves.add(Move(sq - 2 * forward, sq, DOUBLE_PUSH, false));
         }
         while(pr_pawns) {
             uint8_t sq = pop_lsb(&pr_pawns);
             uint8_t from_sq = sq - forward;
-            moves.push_back(Move(from_sq, sq, PROMOTION_QUEEN, false));
-            moves.push_back(Move(from_sq, sq, PROMOTION_ROOK, false));
-            moves.push_back(Move(from_sq, sq, PROMOTION_KNIGHT, false));
-            moves.push_back(Move(from_sq, sq, PROMOTION_BISHOP, false));
+            moves.add(Move(from_sq, sq, PROMOTION_QUEEN, false));
+            moves.add(Move(from_sq, sq, PROMOTION_ROOK, false));
+            moves.add(Move(from_sq, sq, PROMOTION_KNIGHT, false));
+            moves.add(Move(from_sq, sq, PROMOTION_BISHOP, false));
         }
     }
 
@@ -122,7 +122,7 @@ void addPawnMoves(Board& b, vector<Move>& moves, uint64_t valid_sq) {
 
             while(attack_bb) {
                 uint8_t to_sq = pop_lsb(&attack_bb);
-                moves.push_back(Move(pawn_sq, to_sq, 0, true));
+                moves.add(Move(pawn_sq, to_sq, 0, true));
             }
         }
         uint64_t pr_capt_pawns = pawns & pr2_rank;
@@ -133,10 +133,10 @@ void addPawnMoves(Board& b, vector<Move>& moves, uint64_t valid_sq) {
 
             while(attack_bb) {
                 uint8_t to_sq = pop_lsb(&attack_bb);
-                moves.push_back(Move(pawn_sq, to_sq, PROMOTION_QUEEN, true));
-                moves.push_back(Move(pawn_sq, to_sq, PROMOTION_ROOK, true));
-                moves.push_back(Move(pawn_sq, to_sq, PROMOTION_KNIGHT, true));
-                moves.push_back(Move(pawn_sq, to_sq, PROMOTION_BISHOP, true));
+                moves.add(Move(pawn_sq, to_sq, PROMOTION_QUEEN, true));
+                moves.add(Move(pawn_sq, to_sq, PROMOTION_ROOK, true));
+                moves.add(Move(pawn_sq, to_sq, PROMOTION_KNIGHT, true));
+                moves.add(Move(pawn_sq, to_sq, PROMOTION_BISHOP, true));
             }
         }
     
@@ -151,21 +151,21 @@ void addPawnMoves(Board& b, vector<Move>& moves, uint64_t valid_sq) {
             int target_sq = enp_sq + N * (white ? 5 : 2); // set the enpassant square to the correct rank
             while (can_enp) {
                 uint8_t sq = pop_lsb(&can_enp);
-                moves.push_back(Move(sq, target_sq, ENPASSANT, true));
+                moves.add(Move(sq, target_sq, ENPASSANT, true));
             }
         }
     }
 }
 
 
-void addKnightMoves(Board& b, vector<Move>& moves, uint64_t valid_sq) {
+void addKnightMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
     uint64_t knights = b.getPieceBitboard(W_KNIGHT, b.getWhiteTurn());
     while(knights) {
         uint8_t sq = pop_lsb(&knights);
         uint64_t knight_sq = knight_moves[sq] & ~friendly_occ_sq & valid_sq;
         while(knight_sq) {
             uint8_t target_sq = pop_lsb(&knight_sq);
-            moves.push_back(Move(sq, target_sq, 0, ((1ULL << target_sq) & enemy_occ_sq) != 0));
+            moves.add(Move(sq, target_sq, 0, ((1ULL << target_sq) & enemy_occ_sq) != 0));
         }
     }
 }
@@ -184,7 +184,7 @@ uint64_t getRookAttacks(uint64_t occ, int sq) {
     return m_rook_tbl[sq].ptr[occ];
 }
 
-void addSlidingMoves(Board& b, vector<Move>& moves, uint64_t valid_sq) {
+void addSlidingMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
     uint64_t bishops = b.getPieceBitboard(W_BISHOP, white);
     uint64_t rooks = b.getPieceBitboard(W_ROOK, white);
     uint64_t queens = b.getPieceBitboard(W_QUEEN, white);
@@ -194,7 +194,7 @@ void addSlidingMoves(Board& b, vector<Move>& moves, uint64_t valid_sq) {
         uint64_t attacked_sq = getBishopAttacks(all_occ_sq, from_sq) & ~friendly_occ_sq & valid_sq;
         while(attacked_sq) {
             uint8_t to_sq = pop_lsb(&attacked_sq);
-            moves.push_back(Move(from_sq, to_sq, 0, (1ULL << to_sq) & enemy_occ_sq));
+            moves.add(Move(from_sq, to_sq, 0, (1ULL << to_sq) & enemy_occ_sq));
         }
     }
 
@@ -203,7 +203,7 @@ void addSlidingMoves(Board& b, vector<Move>& moves, uint64_t valid_sq) {
         uint64_t attacked_sq = getRookAttacks(all_occ_sq, from_sq) & ~friendly_occ_sq & valid_sq;
         while(attacked_sq) {
             uint8_t to_sq = pop_lsb(&attacked_sq);
-            moves.push_back(Move(from_sq, to_sq, 0, (1ULL << to_sq) & enemy_occ_sq));
+            moves.add(Move(from_sq, to_sq, 0, (1ULL << to_sq) & enemy_occ_sq));
         }
     }
 
@@ -213,13 +213,13 @@ void addSlidingMoves(Board& b, vector<Move>& moves, uint64_t valid_sq) {
                             | getBishopAttacks(all_occ_sq, from_sq)) & ~friendly_occ_sq & valid_sq;
         while(attacked_sq) {
             uint8_t to_sq = pop_lsb(&attacked_sq);
-            moves.push_back(Move(from_sq, to_sq, 0, (1ULL << to_sq) & enemy_occ_sq));
+            moves.add(Move(from_sq, to_sq, 0, (1ULL << to_sq) & enemy_occ_sq));
         }
     }
 }
 
 
-void addKingMoves(Board& b, vector<Move>& moves) {
+void addKingMoves(Board& b, MoveList& moves) {
     uint64_t king = b.getPieceBitboard(W_KING, white);
     if (!king) return;
 
@@ -229,7 +229,7 @@ void addKingMoves(Board& b, vector<Move>& moves) {
     while(king_sq) {
         uint8_t target_sq = pop_lsb(&king_sq);
         if (attackers_to(!white, target_sq, all_occ_sq ^ (1ULL << sq), b)) continue;
-        moves.push_back(Move(sq, target_sq, 0, ((1ULL << target_sq) & enemy_occ_sq) != 0));
+        moves.add(Move(sq, target_sq, 0, ((1ULL << target_sq) & enemy_occ_sq) != 0));
     }
     if (in_check) return;
     //Castling
@@ -243,7 +243,7 @@ void addKingMoves(Board& b, vector<Move>& moves) {
                 if (!can_castle) break;
             }
             if (can_castle) {
-                moves.push_back(Move(sq, castling_target_sq[1 - white][i], CASTLE, false));
+                moves.add(Move(sq, castling_target_sq[1 - white][i], CASTLE, false));
             }
         }
     }
@@ -277,12 +277,12 @@ uint64_t ray_between(int sq_1, int sq_2) {
     return ray_between_table[sq_2][sq_1];
 }
 
-template vector<Move> generateMoves<ALL_MOVES>(Board& b);
-template vector<Move> generateMoves<CAPTURES>(Board& b);
-template vector<Move> generateMoves<QUIET>(Board& b);
-template vector<Move> generateMoves<EVASIONS>(Board& b);
+template MoveList generateMoves<ALL_MOVES>(Board& b);
+template MoveList generateMoves<CAPTURES>(Board& b);
+template MoveList generateMoves<QUIET>(Board& b);
+template MoveList generateMoves<EVASIONS>(Board& b);
 
-template void addPawnMoves<ALL_MOVES>(Board& b, vector<Move>& moves, uint64_t valid_sq);
-template void addPawnMoves<CAPTURES>(Board& b, vector<Move>& moves, uint64_t valid_sq);
-template void addPawnMoves<QUIET>(Board& b, vector<Move>& moves, uint64_t valid_sq);
-template void addPawnMoves<EVASIONS>(Board& b, vector<Move>& moves, uint64_t valid_sq);
+template void addPawnMoves<ALL_MOVES>(Board& b, MoveList& moves, uint64_t valid_sq);
+template void addPawnMoves<CAPTURES>(Board& b, MoveList& moves, uint64_t valid_sq);
+template void addPawnMoves<QUIET>(Board& b, MoveList& moves, uint64_t valid_sq);
+template void addPawnMoves<EVASIONS>(Board& b, MoveList& moves, uint64_t valid_sq);

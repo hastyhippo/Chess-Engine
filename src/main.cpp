@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
         getline(cin, s);
         Board b(s);
         int depth;
-        vector<Move> moves = generateMoves<ALL_MOVES>(b);
+        MoveList moves = generateMoves<ALL_MOVES>(b);
         for (Move a : moves) {
             cout << "MOVE: " << a.getName() << "\n";
             b.makeMove(a);
@@ -72,10 +72,10 @@ int main(int argc, char** argv) {
     vector<string> v;
     // divided_perft(b, 3,  1,   v);
     Board b2("r3k2r/p1pNqpb1/bn2pnp1/3P4/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1");
-    vector<Move> moves = generateMoves<ALL_MOVES>(b2);
+    MoveList moves = generateMoves<ALL_MOVES>(b2);
     // b2.printBoard();
     // cout << "STARTING POSITION\n";
-    cout <<  moves.size() << "\n";
+    cout <<  moves.size << "\n";
     for (Move a : moves) {
         cout  << a.getName() << "\n";
         // b2.makeMove(a);
