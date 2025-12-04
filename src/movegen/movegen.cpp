@@ -35,18 +35,18 @@ MoveList generateMoves(Board& b) {
         uint64_t intersect = ray_between(sniper_sq, king_sq) & friendly_occ_sq;
         if (__popcnt64(intersect) == 1) {
             pinned_pieces |= intersect;
-            pinned_map[_tzcnt_u64(intersect)] = ray_between(sniper_sq, king_sq);
+            pinned_map[get_lsb(intersect)] = ray_between(sniper_sq, king_sq);
         }
     }
     MoveList moves{};
     uint64_t attackers = attackers_to(!white, king_sq, all_occ_sq, b);
     num_attackers = __popcnt64(attackers);
     in_check = num_attackers > 0;
-    uint64_t valid_sq = (Type == EVASIONS) ? ray_between(_tzcnt_u64(attackers), king_sq) :
+    uint64_t valid_sq = (Type == EVASIONS) ? ray_between(get_lsb(attackers), king_sq) :
                         Type == CAPTURES ? enemy_occ_sq :
                         Type == QUIET ? ~enemy_occ_sq : ~0ULL;
 
-    if (num_attackers == 1) valid_sq = ray_between(_tzcnt_u64(attackers), king_sq);
+    if (num_attackers == 1) valid_sq = ray_between(get_lsb(attackers), king_sq);
     return generate_all_moves(b, valid_sq);
 }
 
@@ -80,7 +80,7 @@ MoveList generate_all_moves(Board &b, uint64_t valid_sq) {
 // Use template here because knowing if we calculate captures only can prune out chunks of logic
 template<GenType Type>
 void addPawnMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
-    int forward = white ? NORTH : SOUTH;
+    int8_t forward = white ? NORTH : SOUTH;
 
     uint64_t pawns = b.getPieceBitboard(W_PAWN, white) & ~pinned_pieces;
     uint64_t pr_rank = white ? RANK_8 : RANK_1; // promotion rank
@@ -96,17 +96,17 @@ void addPawnMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
         while(push1_pawns) {
             uint8_t sq = pop_lsb(&push1_pawns);
             if ((1ULL << sq) & pr_rank) {
-                moves.add(Move(sq - forward, sq, PROMOTION_QUEEN, false));
-                moves.add(Move(sq - forward, sq, PROMOTION_ROOK, false));
-                moves.add(Move(sq - forward, sq, PROMOTION_KNIGHT, false));
-                moves.add(Move(sq - forward, sq, PROMOTION_BISHOP, false));
+                moves.add(Move(sq - forward, sq, PROMOTION_QUEEN));
+                moves.add(Move(sq - forward, sq, PROMOTION_ROOK));
+                moves.add(Move(sq - forward, sq, PROMOTION_KNIGHT));
+                moves.add(Move(sq - forward, sq, PROMOTION_BISHOP));
             } else {
-                moves.add(Move(sq - forward, sq, 0, false));
+                moves.add(Move(sq - forward, sq, 0));
             }
         }
         while(push2_pawns) {
             uint8_t sq = pop_lsb(&push2_pawns);
-            moves.add(Move(sq - 2 * forward, sq, DOUBLE_PUSH, false));
+            moves.add(Move(sq - 2 * forward, sq, DOUBLE_PUSH));
         }
     }
 
@@ -119,12 +119,12 @@ void addPawnMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
             while(attack_bb) {
                 uint8_t to_sq = pop_lsb(&attack_bb);
                 if (pr2_rank & (1ULL << pawn_sq)) {
-                    moves.add(Move(pawn_sq, to_sq, PROMOTION_QUEEN, true));
-                    moves.add(Move(pawn_sq, to_sq, PROMOTION_ROOK, true));
-                    moves.add(Move(pawn_sq, to_sq, PROMOTION_KNIGHT, true));
-                    moves.add(Move(pawn_sq, to_sq, PROMOTION_BISHOP, true));
+                    moves.add(Move(pawn_sq, to_sq, PROMOTION_QUEEN));
+                    moves.add(Move(pawn_sq, to_sq, PROMOTION_ROOK));
+                    moves.add(Move(pawn_sq, to_sq, PROMOTION_KNIGHT));
+                    moves.add(Move(pawn_sq, to_sq, PROMOTION_BISHOP));
                 } else {
-                    moves.add(Move(pawn_sq, to_sq, 0, true));
+                    moves.add(Move(pawn_sq, to_sq, 0));
                 }
             }
         }
@@ -139,7 +139,7 @@ void addPawnMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
     
             uint64_t king_bb = b.getPieceBitboard(W_KING, white);
             if (!king_bb) return;
-            uint8_t king_sq = _tzcnt_u64(king_bb);
+            uint8_t king_sq = get_lsb(king_bb);
             
             while (can_enp) {
                 uint8_t from_sq = pop_lsb(&can_enp);
@@ -150,7 +150,7 @@ void addPawnMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
                 modified_occ ^= (1ULL << captured_pawn_sq);
                 modified_occ |= (1ULL << to_sq);
                 if (!has_attackers(!white, king_sq, modified_occ, 1ULL << captured_pawn_sq, b)) {
-                    moves.add(Move(from_sq, to_sq, ENPASSANT, true));
+                    moves.add(Move(from_sq, to_sq, ENPASSANT));
                 }
             }
         }
@@ -163,7 +163,7 @@ void addPinnedPawns(Board& b, MoveList& moves, uint64_t valid_sq) {
     uint64_t pr_rank = white ? RANK_8 : RANK_1; // promotion rank
     uint64_t pr2_rank = white ? RANK_7 : RANK_2; // promotion rank
     while(pinned_pawns) {
-        int from_sq = pop_lsb(&pinned_pawns);
+        uint8_t from_sq = pop_lsb(&pinned_pawns);
         uint64_t allowed_sq = pinned_map[from_sq];
         uint64_t second_rank = white ? RANK_3 : RANK_6;
         // cout << "Allowed\n";
@@ -174,17 +174,17 @@ void addPinnedPawns(Board& b, MoveList& moves, uint64_t valid_sq) {
         if (push1) {
             uint8_t to_sq = pop_lsb(&push1);
             if ((1ULL << to_sq) & pr_rank) {
-                moves.add(Move(from_sq, to_sq, PROMOTION_QUEEN, false));
-                moves.add(Move(from_sq, to_sq, PROMOTION_ROOK, false));
-                moves.add(Move(from_sq, to_sq, PROMOTION_KNIGHT, false));
-                moves.add(Move(from_sq, to_sq, PROMOTION_BISHOP, false));
+                moves.add(Move(from_sq, to_sq, PROMOTION_QUEEN));
+                moves.add(Move(from_sq, to_sq, PROMOTION_ROOK));
+                moves.add(Move(from_sq, to_sq, PROMOTION_KNIGHT));
+                moves.add(Move(from_sq, to_sq, PROMOTION_BISHOP));
             } else {
-                moves.add(Move(from_sq, to_sq, 0, false));
+                moves.add(Move(from_sq, to_sq, 0));
             }
         }
         if (push2) {
             uint8_t to_sq = pop_lsb(&push2);
-            moves.add(Move(from_sq, to_sq, DOUBLE_PUSH, false));
+            moves.add(Move(from_sq, to_sq, DOUBLE_PUSH));
         }
 
 
@@ -193,12 +193,12 @@ void addPinnedPawns(Board& b, MoveList& moves, uint64_t valid_sq) {
         while(capt_sq) {
             uint8_t to_sq = pop_lsb(&capt_sq);
             if ((1ULL << to_sq) & pr_rank) {
-                moves.add(Move(from_sq, to_sq, PROMOTION_QUEEN, true));
-                moves.add(Move(from_sq, to_sq, PROMOTION_ROOK, true));
-                moves.add(Move(from_sq, to_sq, PROMOTION_KNIGHT, true));
-                moves.add(Move(from_sq, to_sq, PROMOTION_BISHOP, true));
+                moves.add(Move(from_sq, to_sq, PROMOTION_QUEEN));
+                moves.add(Move(from_sq, to_sq, PROMOTION_ROOK));
+                moves.add(Move(from_sq, to_sq, PROMOTION_KNIGHT));
+                moves.add(Move(from_sq, to_sq, PROMOTION_BISHOP));
             } else {
-                moves.add(Move(from_sq, to_sq, 0, true));
+                moves.add(Move(from_sq, to_sq, 0));
             }
         }
     }
@@ -212,7 +212,7 @@ void addKnightMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
         uint64_t knight_sq = knight_moves[sq] & ~friendly_occ_sq & valid_sq;
         while(knight_sq) {
             uint8_t target_sq = pop_lsb(&knight_sq);
-            moves.add(Move(sq, target_sq, 0, ((1ULL << target_sq) & enemy_occ_sq) != 0));
+            moves.add(Move(sq, target_sq, 0));
         }
     }
 }
@@ -243,7 +243,7 @@ void addSlidingMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
 
         while(attacked_sq) {
             uint8_t to_sq = pop_lsb(&attacked_sq);
-            moves.add(Move(from_sq, to_sq, 0, (1ULL << to_sq) & enemy_occ_sq));
+            moves.add(Move(from_sq, to_sq, 0));
         }
     }
 
@@ -254,7 +254,7 @@ void addSlidingMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
 
         while(attacked_sq) {
             uint8_t to_sq = pop_lsb(&attacked_sq);
-            moves.add(Move(from_sq, to_sq, 0, (1ULL << to_sq) & enemy_occ_sq));
+            moves.add(Move(from_sq, to_sq, 0));
         }
     }
 
@@ -266,7 +266,7 @@ void addSlidingMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
 
         while(attacked_sq) {
             uint8_t to_sq = pop_lsb(&attacked_sq);
-            moves.add(Move(from_sq, to_sq, 0, (1ULL << to_sq) & enemy_occ_sq));
+            moves.add(Move(from_sq, to_sq, 0));
         }
     }
 }
@@ -283,7 +283,7 @@ void addKingMoves(Board& b, MoveList& moves) {
     while(king_sq) {
         uint8_t target_sq = pop_lsb(&king_sq);
         if (attackers_to(!white, target_sq, all_occ_sq ^ (1ULL << sq), b)) continue;
-        moves.add(Move(sq, target_sq, 0, ((1ULL << target_sq) & enemy_occ_sq) != 0));
+        moves.add(Move(sq, target_sq, 0));
     }
     if (in_check) return;
     //Castling
@@ -297,7 +297,7 @@ void addKingMoves(Board& b, MoveList& moves) {
                 if (!can_castle) break;
             }
             if (can_castle) {
-                moves.add(Move(sq, castling_target_sq[1 - white][i], CASTLE, false));
+                moves.add(Move(sq, castling_target_sq[1 - white][i], CASTLE));
             }
         }
     }

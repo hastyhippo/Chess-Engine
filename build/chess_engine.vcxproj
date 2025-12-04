@@ -382,7 +382,6 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\movegen\move.cpp" />
     <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\movegen\movegen.cpp" />
     <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\representation\board.cpp" />
-    <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\representation\boardstate.cpp" />
     <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\search\eval.cpp" />
     <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\search\search.cpp" />
     <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\test\test_movegen.cpp" />

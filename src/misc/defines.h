@@ -1,7 +1,8 @@
 #pragma once
 
 #include <bits/stdc++.h>
-#include "../movegen/move.h";
+#include "../movegen/move.h"
+
 using namespace std;
 
 #define N_ROWS 8
@@ -253,4 +254,8 @@ inline uint8_t pop_lsb(uint64_t* b) {
     uint8_t sq = _tzcnt_u64(*b);
     *b &= *b - 1;
     return sq;
+}
+
+inline uint8_t get_lsb(uint64_t& b) {
+    return _tzcnt_u64(b);
 }
