@@ -45,7 +45,10 @@ int main(int argc, char** argv) {
     //     cout << a.getName() << " \n";
     // }
     // assert(moves2.size() == moves.size());
-    
+    Board b("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    for (int i = 1; i <= 5; i++) {
+        timedPerft2(b, i);
+    }
     while(true) {
         
         string s;
@@ -59,7 +62,7 @@ int main(int argc, char** argv) {
             cout << a.getName() << "\n";
             b.makeMove(a);
             // b.printBoard();
-            b.unmakeMove();
+            b.unmakeMove(a);
         }
         cin >> depth;
         vector<string> v;

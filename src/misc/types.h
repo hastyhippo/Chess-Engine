@@ -10,7 +10,7 @@ inline uint8_t piece(Colour colour, PieceType type) {
     return static_cast<uint8_t>(colour) * 6 + static_cast<uint8_t>(type);
 }
 
-inline Colour color_of(uint8_t p) {
+inline Colour colour_of(uint8_t p) {
     return static_cast<Colour>(static_cast<uint8_t>(p) / 6);
 }
 

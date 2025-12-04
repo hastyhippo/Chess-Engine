@@ -99,7 +99,7 @@ void Board::saveState() {
     for (int i = 0; i < 64; ++i) {
         state.pieces_arr[i] = pieces_arr[i];
     }
-    state_history.push_back(state);
+    // state_history.push_back(state);
 }
 
 void Board::restoreState(const BoardStateData& state) {
@@ -122,7 +122,7 @@ uint64_t Board::getColourPieces(Colour side) {
 
 void Board::addPieceBitboard(uint8_t piece_type, uint64_t to_add) {
     this->piece_bb[type_of(piece_type)] |= to_add;
-    this->colour_bb[color_of(piece_type)] |= to_add;
+    this->colour_bb[colour_of(piece_type)] |= to_add;
     this->pieces_arr[get_lsb(to_add)] = piece_type;
 }
 
@@ -180,75 +180,94 @@ bool Board::getWhiteTurn() {
     return (this->white_turn);
 }
 
-void Board::makeMove(Move move) {
-    saveState();
+constexpr uint8_t NO_PIECE = 255;
+constexpr uint8_t NO_ENP_SQ = 255;
 
+void Board::makeMove(Move m) {
     Colour side = white_turn ? WHITE : BLACK;
-    uint8_t from_sq = move.getFromSq();
-    uint8_t to_sq = move.getToSq();
-    uint8_t move_flag = move.getMoveFlag();
+    
+    // Save old board_info BEFORE modifying it
+    BoardState new_bs;
+    new_bs.board_info = board_info;  // Save OLD board_info
+    new_bs.enpassant_sq = NO_ENP_SQ;
+    new_bs.captured_piece = NO_PIECE;
 
-    uint8_t moved_piece = pieceOn(from_sq);
+    uint8_t from_sq = m.getFromSq();
+    uint8_t to_sq = m.getToSq();
+    uint8_t move_flag = m.getMoveFlag();
     uint8_t castling_rights = getCastlingRights();
 
-    // Update castling rights. Moving from/to king square removes both rights. Moving to/from rook squares removes 1
     castling_rights &= ~(castling_mask[from_sq] | castling_mask[to_sq]);
 
     uint8_t piece_on_target = pieceOn(to_sq);
-    if ((piece_on_target != EMPTY_SQ ) && (move_flag != ENPASSANT)) {
-        piece_bb[type_of(piece_on_target)] ^= (1ULL << to_sq);
-        colour_bb[color_of(piece_on_target)] ^= (1ULL << to_sq); // Captured piece
-        pieces_arr[to_sq] = EMPTY_SQ;
+
+    if ((piece_on_target != EMPTY_SQ) && (move_flag != ENPASSANT)) {
+        new_bs.captured_piece = piece_on_target;
+        remove_piece(to_sq);
     }
-    piece_bb[type_of(moved_piece)] ^= (1ULL << from_sq);
-    colour_bb[color_of(moved_piece)] ^= (1ULL << from_sq); // Moving piece
-    pieces_arr[from_sq] = EMPTY_SQ;
 
-    uint8_t new_piece = move.isPromo() ? piece(side, move.promoPiece()) : moved_piece;
-    piece_bb[type_of(new_piece)] ^= (1ULL << to_sq);
-    colour_bb[color_of(new_piece)] ^= (1ULL << to_sq); // New piece at destination
-    pieces_arr[to_sq] = new_piece;
+    move_piece(from_sq, to_sq);
 
+    if (m.isPromo()) {
+        swap_piece(to_sq, piece(side, m.promoPiece()));
+    }
 
     uint8_t enp_file = NO_ENP;
     if (move_flag == DOUBLE_PUSH) {
         enp_file = (to_sq % 8);
     } else if (move_flag == CASTLE) {
-        int castling_side = ((1ULL << to_sq) & G_FILE) ? KINGSIDE : QUEENSIDE;
-        uint64_t rook_move_bb = castling_rook_moves[side][castling_side];
-        piece_bb[ROOK] ^= rook_move_bb;
-        colour_bb[side] ^= rook_move_bb;
-        
-        uint8_t rook_from_sq = castling_rook_from_sq[side][castling_side];
-        uint8_t rook_to_sq   = castling_rook_to_sq[side][castling_side];
-        pieces_arr[rook_from_sq] = EMPTY_SQ;
-        pieces_arr[rook_to_sq]   = piece(side, ROOK);
+        int castling_side = to_sq > from_sq ? KINGSIDE : QUEENSIDE;        
+        move_piece(castling_rook_from_sq[side][castling_side],  castling_rook_to_sq[side][castling_side]);
 
     } else if (move_flag == ENPASSANT) {
         uint8_t capt_sq = (side == WHITE) ? (to_sq - 8) : (to_sq + 8);
+        new_bs.enpassant_sq = capt_sq;
         uint8_t capt_piece = pieceOn(capt_sq);
-
-        piece_bb[type_of(capt_piece)] ^= (1ULL << capt_sq);
-        colour_bb[color_of(capt_piece)] ^= (1ULL << capt_sq); // Captured pawn
-        pieces_arr[capt_sq] = EMPTY_SQ;
+        new_bs.captured_piece = capt_piece;
+        remove_piece(capt_sq);
     }
     
     // Update board_info with new castling rights and en passant
     uint16_t new_board_info = (castling_rights & CASTLING_BITMASK);
     new_board_info |= (enp_file << 10) & ENPASSANT_BITMASK;
-    new_board_info |= ((board_info & HALFMOVES_BITMASK));
+    new_board_info |= (board_info & HALFMOVES_BITMASK);
     board_info = new_board_info;
 
+    state_history.push_back(new_bs);
     this->move_number++;
     this->white_turn = !this->white_turn;
 }
 
-void Board::unmakeMove() {
-    BoardStateData prev_state = state_history.back();
+void Board::unmakeMove(Move m) {
+    BoardState prev_state = state_history.back();
     state_history.pop_back();
-    restoreState(prev_state);
+
     this->move_number--;
     this->white_turn = !this->white_turn;
+    
+    Colour side = white_turn ? WHITE : BLACK;
+    uint8_t from_sq = m.getFromSq();
+    uint8_t to_sq = m.getToSq();
+    uint8_t move_flag = m.getMoveFlag();
+
+    board_info = prev_state.board_info;
+
+    if (move_flag == CASTLE) {
+        int castling_side = to_sq > from_sq ? KINGSIDE : QUEENSIDE;
+        move_piece(castling_rook_to_sq[side][castling_side], castling_rook_from_sq[side][castling_side]);
+    } else if (move_flag == ENPASSANT) {
+        add_piece(prev_state.captured_piece, prev_state.enpassant_sq);
+    }
+
+    if (m.isPromo()) {
+        swap_piece(to_sq, piece(side, PAWN));
+    }
+
+    move_piece(to_sq, from_sq);
+
+    if ((prev_state.captured_piece != NO_PIECE) && (move_flag != ENPASSANT)) {
+        add_piece(prev_state.captured_piece, to_sq);
+    }
 }
 
 void Board::printBoard() {

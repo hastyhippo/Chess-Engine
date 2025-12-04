@@ -23,9 +23,6 @@ struct SMagic {
     int shift;
 };
 
-
-
-
 enum GenType {CAPTURES, EVASIONS, QUIET, ALL_MOVES, PINNED};
 
 vector<string>splitString(const string& input, const char delimiter);
