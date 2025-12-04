@@ -259,3 +259,6 @@ inline uint8_t pop_lsb(uint64_t* b) {
 inline uint8_t get_lsb(uint64_t& b) {
     return _tzcnt_u64(b);
 }
+
+enum Colour : uint8_t { WHITE = 0, BLACK = 1 };
+constexpr Colour operator~(Colour c) { return Colour(c ^ 1); }

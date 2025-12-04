@@ -41,11 +41,16 @@ class Board {
         Board(string FEN);
         
         // Piece bitboard methods
-        uint64_t getPieceBitboard(PieceType piece_type);
-        uint64_t getPieceBitboard(PieceType piece_type, bool current_player);
         void addPieceBitboard(PieceType piece_type, uint64_t to_add);
         uint64_t getColourPieces(bool white);
         uint8_t pieceOn(int sq);
+        
+        uint64_t getPawnBitboard(bool white);
+        uint64_t getKnightBitboard(bool white);
+        uint64_t getBishopBitboard(bool white);
+        uint64_t getRookBitboard(bool white);
+        uint64_t getQueenBitboard(bool white);
+        uint64_t getKingBitboard(bool white);
         
         // Board info methods
         uint8_t getCastlingRights();
@@ -55,7 +60,7 @@ class Board {
         uint16_t getBoardInfo();
         
         // Move methods
-        void makeMove(Move& move, bool white);
+        void makeMove(Move& move, Colour side);
         
         // Game state methods
         bool getWhiteTurn();

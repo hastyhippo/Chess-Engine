@@ -115,14 +115,6 @@ uint64_t Board::getColourPieces(bool white) {
     return this->colour_bb[1 - white];
 }
 
-uint64_t Board::getPieceBitboard(PieceType piece_type) {
-    return this->piece_bb[piece_type % 6] & colour_bb[piece_type / 6];
-}
-
-uint64_t Board::getPieceBitboard(PieceType piece_type, bool white) {
-    return this->piece_bb[piece_type] & colour_bb[1 - white];
-}
-
 void Board::addPieceBitboard(PieceType piece_type, uint64_t to_add) {
     this->piece_bb[piece_type % 6] |= to_add;
     this->colour_bb[piece_type / 6] |= to_add;
@@ -131,6 +123,30 @@ void Board::addPieceBitboard(PieceType piece_type, uint64_t to_add) {
 
 uint8_t Board::pieceOn(int sq) {
     return this->pieces_arr[sq];
+}
+
+uint64_t Board::getPawnBitboard(bool white) {
+    return piece_bb[0] & colour_bb[1 - white];
+}
+
+uint64_t Board::getKnightBitboard(bool white) {
+    return piece_bb[1] & colour_bb[1 - white];
+}
+
+uint64_t Board::getBishopBitboard(bool white) {
+    return piece_bb[2] & colour_bb[1 - white];
+}
+
+uint64_t Board::getRookBitboard(bool white) {
+    return piece_bb[3] & colour_bb[1 - white];
+}
+
+uint64_t Board::getQueenBitboard(bool white) {
+    return piece_bb[4] & colour_bb[1 - white];
+}
+
+uint64_t Board::getKingBitboard(bool white) {
+    return piece_bb[5] & colour_bb[1 - white];
 }
 
 // Board info methods
@@ -155,7 +171,7 @@ uint16_t Board::getBoardInfo() {
 }
 
 // Move methods
-void Board::makeMove(Move& move, bool white) {
+void Board::makeMove(Move& move, Colour side) {
     uint8_t from_sq = move.getFromSq();
     uint8_t to_sq = move.getToSq();
     uint8_t move_flag = move.getMoveFlag();
@@ -167,19 +183,19 @@ void Board::makeMove(Move& move, bool white) {
     // Update castling rights. Moving from/to king square removes both rights. Moving to/from rook squares removes 1
     castling_rights &= ~(castling_mask[from_sq] | castling_mask[to_sq]);
 
-    if ((pieceOn(to_sq) != EMPTY_SQ ) && (move_flag != ENPASSANT)) {
-        uint8_t capt_piece = pieceOn(to_sq);
-        piece_bb[capt_piece % 6] ^= (1ULL << to_sq);
-        colour_bb[white ? 1 : 0] ^= (1ULL << to_sq);
+    uint8_t piece_on_target = pieceOn(to_sq);
+    if ((piece_on_target != EMPTY_SQ ) && (move_flag != ENPASSANT)) {
+        piece_bb[piece_on_target % 6] ^= (1ULL << to_sq);
+        colour_bb[1 - side] ^= (1ULL << to_sq); // Captured piece is opponent's colour
         pieces_arr[to_sq] = EMPTY_SQ;
     }
     piece_bb[moved_piece % 6] ^= (1ULL << from_sq);
-    colour_bb[white ? 0 : 1] ^= (1ULL << from_sq);
+    colour_bb[side] ^= (1ULL << from_sq); // Moving piece
     pieces_arr[from_sq] = EMPTY_SQ;
 
-    uint8_t new_piece = move.isPromo() ? move.promoPiece() + (white? 0 : 6) : moved_piece;
+    uint8_t new_piece = move.isPromo() ? move.promoPiece() + (side == WHITE ? 0 : 6) : moved_piece;
     piece_bb[new_piece % 6] ^= (1ULL << to_sq);
-    colour_bb[white ? 0 : 1] ^= (1ULL << to_sq);
+    colour_bb[side] ^= (1ULL << to_sq); // New piece at destination
     pieces_arr[to_sq] = new_piece;
 
 
@@ -187,19 +203,19 @@ void Board::makeMove(Move& move, bool white) {
     if (move_flag == DOUBLE_PUSH) {
         enp_file = (to_sq % 8);
     } else if (move_flag == CASTLE) {
-        int side = ((1ULL << to_sq) & G_FILE) ? KINGSIDE : QUEENSIDE;
-        uint64_t rook_move_bb = castling_rook_moves[white ? 0 : 1][side];
+        int castling_side = ((1ULL << to_sq) & G_FILE) ? KINGSIDE : QUEENSIDE;
+        uint64_t rook_move_bb = castling_rook_moves[side][castling_side];
         piece_bb[W_ROOK % 6] ^= rook_move_bb;
-        colour_bb[white ? 0 : 1] ^= rook_move_bb;
+        colour_bb[side] ^= rook_move_bb;
         
-        uint8_t rook_piece = white ? W_ROOK : B_ROOK;
-        pieces_arr[side == KINGSIDE ? (white ? 7 : 63) : (white ? 0 : 56)] = EMPTY_SQ;
-        pieces_arr[side == KINGSIDE ? (white ? 5 : 61) : (white ? 3 : 59)] = rook_piece;
+        uint8_t rook_piece = (side == WHITE) ? W_ROOK : B_ROOK;
+        pieces_arr[castling_side == KINGSIDE ? (side == WHITE ? 7 : 63) : (side == WHITE ? 0 : 56)] = EMPTY_SQ;
+        pieces_arr[castling_side == KINGSIDE ? (side == WHITE ? 5 : 61) : (side == WHITE ? 3 : 59)] = rook_piece;
     } else if (move_flag == ENPASSANT) {
-        uint8_t capt_sq = white ? (to_sq - 8) : (to_sq + 8);
+        uint8_t capt_sq = (side == WHITE) ? (to_sq - 8) : (to_sq + 8);
         uint8_t capt_piece = pieceOn(capt_sq);
         piece_bb[capt_piece % 6] ^= (1ULL << capt_sq);
-        colour_bb[white ? 1 : 0] ^= (1ULL << capt_sq);
+        colour_bb[1 - side] ^= (1ULL << capt_sq); // Captured pawn is opponent's colour
         pieces_arr[capt_sq] = EMPTY_SQ;
     }
     
@@ -217,7 +233,7 @@ bool Board::getWhiteTurn() {
 
 void Board::makeMove(Move& move) {
     saveState();
-    makeMove(move, white_turn);
+    makeMove(move, white_turn ? WHITE : BLACK);
     this->move_number++;
     this->white_turn = !this->white_turn;
 }
