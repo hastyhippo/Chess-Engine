@@ -1,6 +1,7 @@
 #pragma once
 
 #include <bits/stdc++.h>
+#include "types.h"
 #include "../movegen/move.h"
 
 using namespace std;
@@ -14,7 +15,6 @@ using namespace std;
 #define QUEENSIDE 1
 
 class Board;
-class Move;
 // using the Fancy approach: https://www.chessprogramming.org/Magic_Bitboards
 struct SMagic {
     uint64_t* ptr;
@@ -25,8 +25,6 @@ struct SMagic {
 
 
 
-enum PieceType {W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING, 
-                B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING};
 
 enum GenType {CAPTURES, EVASIONS, QUIET, ALL_MOVES, PINNED};
 
@@ -244,6 +242,18 @@ constexpr uint64_t castling_target_sq[2][2] = {
     {62, 58}
 };
 
+// Rook from/to squares for castling: [colour][side]
+// colour: WHITE=0, BLACK=1; side: KINGSIDE=0, QUEENSIDE=1
+constexpr uint8_t castling_rook_from_sq[2][2] = {
+    {7, 0},   // White: h1, a1
+    {63, 56}  // Black: h8, a8
+};
+
+constexpr uint8_t castling_rook_to_sq[2][2] = {
+    {5, 3},   // White: f1, d1
+    {61, 59}  // Black: f8, d8
+};
+
 uint64_t divided_perft(Board &b, int depth, int print_depth, vector<string>& moves);
 uint64_t divided_perft(Board &b, int depth, vector<string>& moves);
 
@@ -260,5 +270,4 @@ inline uint8_t get_lsb(uint64_t& b) {
     return _tzcnt_u64(b);
 }
 
-enum Colour : uint8_t { WHITE = 0, BLACK = 1 };
 constexpr Colour operator~(Colour c) { return Colour(c ^ 1); }

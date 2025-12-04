@@ -2,7 +2,6 @@
 #include <bits/stdc++.h>
 #include <stack>
 #include "../misc/defines.h"
-#include "../movegen/move.h"
 
 using namespace std;
 
@@ -17,6 +16,10 @@ struct BoardStateData {
     uint64_t piece_bb[6];
     uint64_t colour_bb[2];
     uint8_t pieces_arr[64];
+};
+
+struct BoardState {
+
 };
 
 class Board {
@@ -41,7 +44,7 @@ class Board {
         Board(string FEN);
         
         // Piece bitboard methods
-        void addPieceBitboard(PieceType piece_type, uint64_t to_add);
+        void addPieceBitboard(uint8_t piece_type, uint64_t to_add);
         uint64_t getColourPieces(bool white);
         uint8_t pieceOn(int sq);
         
@@ -58,13 +61,10 @@ class Board {
         uint8_t getHalfMoveClock();
         void setBoardInfo(uint16_t new_info);
         uint16_t getBoardInfo();
-        
-        // Move methods
-        void makeMove(Move& move, Colour side);
-        
+                
         // Game state methods
         bool getWhiteTurn();
-        void makeMove(Move& move);
+        void makeMove(Move move);
         void unmakeMove();
         void printBoard();
 };

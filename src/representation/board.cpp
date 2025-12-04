@@ -29,8 +29,12 @@ Board::Board(string FEN) {
         this->pieces_arr[i] = EMPTY_SQ;
     }
 
-    map<char, PieceType> fen_char_to_piece = {{'P', W_PAWN}, {'N', W_KNIGHT}, {'B', W_BISHOP}, {'R',W_ROOK}, {'Q', W_QUEEN}, {'K', W_KING}, 
-                                    {'p', B_PAWN}, {'n', B_KNIGHT}, {'b', B_BISHOP}, {'r', B_ROOK}, {'q', B_QUEEN}, {'k', B_KING}};
+    map<char, uint8_t> fen_char_to_piece = {
+        {'P', piece(WHITE, PAWN)}, {'N', piece(WHITE, KNIGHT)}, {'B', piece(WHITE, BISHOP)}, 
+        {'R', piece(WHITE, ROOK)}, {'Q', piece(WHITE, QUEEN)}, {'K', piece(WHITE, KING)}, 
+        {'p', piece(BLACK, PAWN)}, {'n', piece(BLACK, KNIGHT)}, {'b', piece(BLACK, BISHOP)}, 
+        {'r', piece(BLACK, ROOK)}, {'q', piece(BLACK, QUEEN)}, {'k', piece(BLACK, KING)}
+    };
 
     vector<string> fen_split = splitString(FEN, ' ');
     if (fen_split.size() != 6) {
@@ -49,7 +53,8 @@ Board::Board(string FEN) {
             if (!isalpha(ch)) {
                 col += (ch-'0');
             } else {
-                addPieceBitboard(fen_char_to_piece[ch], 1ULL << (row * N_COLS + col));
+                uint8_t piece_val = fen_char_to_piece[ch];
+                addPieceBitboard(piece_val, 1ULL << (row * N_COLS + col));
                 col++;
             }
         }
@@ -115,7 +120,7 @@ uint64_t Board::getColourPieces(bool white) {
     return this->colour_bb[1 - white];
 }
 
-void Board::addPieceBitboard(PieceType piece_type, uint64_t to_add) {
+void Board::addPieceBitboard(uint8_t piece_type, uint64_t to_add) {
     this->piece_bb[piece_type % 6] |= to_add;
     this->colour_bb[piece_type / 6] |= to_add;
     this->pieces_arr[get_lsb(to_add)] = piece_type;
@@ -170,14 +175,20 @@ uint16_t Board::getBoardInfo() {
     return this->board_info;
 }
 
-// Move methods
-void Board::makeMove(Move& move, Colour side) {
+// Game state methods
+bool Board::getWhiteTurn() {
+    return (this->white_turn);
+}
+
+void Board::makeMove(Move move) {
+    saveState();
+
+    Colour side = white_turn ? WHITE : BLACK;
     uint8_t from_sq = move.getFromSq();
     uint8_t to_sq = move.getToSq();
     uint8_t move_flag = move.getMoveFlag();
 
     uint8_t moved_piece = pieceOn(from_sq);
-    
     uint8_t castling_rights = getCastlingRights();
 
     // Update castling rights. Moving from/to king square removes both rights. Moving to/from rook squares removes 1
@@ -205,15 +216,18 @@ void Board::makeMove(Move& move, Colour side) {
     } else if (move_flag == CASTLE) {
         int castling_side = ((1ULL << to_sq) & G_FILE) ? KINGSIDE : QUEENSIDE;
         uint64_t rook_move_bb = castling_rook_moves[side][castling_side];
-        piece_bb[W_ROOK % 6] ^= rook_move_bb;
+        piece_bb[ROOK % 6] ^= rook_move_bb;
         colour_bb[side] ^= rook_move_bb;
         
-        uint8_t rook_piece = (side == WHITE) ? W_ROOK : B_ROOK;
-        pieces_arr[castling_side == KINGSIDE ? (side == WHITE ? 7 : 63) : (side == WHITE ? 0 : 56)] = EMPTY_SQ;
-        pieces_arr[castling_side == KINGSIDE ? (side == WHITE ? 5 : 61) : (side == WHITE ? 3 : 59)] = rook_piece;
+        uint8_t rook_from_sq = castling_rook_from_sq[side][castling_side];
+        uint8_t rook_to_sq   = castling_rook_to_sq[side][castling_side];
+        pieces_arr[rook_from_sq] = EMPTY_SQ;
+        pieces_arr[rook_to_sq]   = piece(side, ROOK);
+
     } else if (move_flag == ENPASSANT) {
         uint8_t capt_sq = (side == WHITE) ? (to_sq - 8) : (to_sq + 8);
         uint8_t capt_piece = pieceOn(capt_sq);
+
         piece_bb[capt_piece % 6] ^= (1ULL << capt_sq);
         colour_bb[1 - side] ^= (1ULL << capt_sq); // Captured pawn is opponent's colour
         pieces_arr[capt_sq] = EMPTY_SQ;
@@ -224,16 +238,7 @@ void Board::makeMove(Move& move, Colour side) {
     new_board_info |= (enp_file << 10) & ENPASSANT_BITMASK;
     new_board_info |= ((board_info & HALFMOVES_BITMASK));
     board_info = new_board_info;
-}
 
-// Game state methods
-bool Board::getWhiteTurn() {
-    return (this->white_turn);
-}
-
-void Board::makeMove(Move& move) {
-    saveState();
-    makeMove(move, white_turn ? WHITE : BLACK);
     this->move_number++;
     this->white_turn = !this->white_turn;
 }

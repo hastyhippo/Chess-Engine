@@ -1,5 +1,4 @@
 #include "defines.h"
-#include "../movegen/move.h"
 #include "../movegen/movegen.h"
 
 unordered_map<string, uint64_t> name_to_bit = {

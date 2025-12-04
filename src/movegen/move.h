@@ -1,5 +1,6 @@
 #pragma once
 #include <bits/stdc++.h>
+#include "../misc/types.h"
 #define NORMAL 0
 #define DOUBLE_PUSH 1
 #define PROMOTION_KNIGHT 2
@@ -26,6 +27,6 @@ class Move {
         uint8_t getFromSq();
         uint8_t getMoveFlag();
         bool isPromo();
-        uint8_t promoPiece();
+        PieceType promoPiece();
 
 };

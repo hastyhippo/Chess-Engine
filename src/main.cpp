@@ -2,7 +2,6 @@
 #include "./initialisation/init.h"
 #include "./representation/board.h"
 #include "./movegen/movegen.h"
-#include "./movegen/move.h"
 #include "cassert"
 #include "misc/defines.h"
 #define DOCTEST_CONFIG_IMPLEMENT

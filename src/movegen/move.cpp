@@ -32,12 +32,12 @@ bool Move::isPromo() {
     return flag >= PROMOTION_KNIGHT && flag <= PROMOTION_QUEEN;
 }
 
-uint8_t Move::promoPiece() {
+PieceType Move::promoPiece() {
     switch(getMoveFlag()) {
-        case PROMOTION_QUEEN: return W_QUEEN;
-        case PROMOTION_ROOK: return W_ROOK;
-        case PROMOTION_BISHOP: return W_BISHOP;
-        case PROMOTION_KNIGHT: return W_KNIGHT;
+        case PROMOTION_QUEEN: return QUEEN;
+        case PROMOTION_ROOK: return ROOK;
+        case PROMOTION_BISHOP: return BISHOP;
+        case PROMOTION_KNIGHT: return KNIGHT;
     }
-    return -1;
+    return NO_TYPE;
 } 
