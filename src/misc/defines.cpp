@@ -86,6 +86,7 @@ uint64_t divided_perft(Board &b, int depth, int print_depth, vector<string>& mov
     }
     return n_moves;
 }
+
 uint64_t divided_perft(Board &b, int depth, vector<string>& moves) {
     if (depth == 0) {    
         cout << moves[moves.size()-1] << " ";

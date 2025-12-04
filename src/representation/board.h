@@ -24,7 +24,7 @@ class Board {
         uint64_t getPieceBitboard(PieceType piece_type, bool current_player);
         void addPieceBitboard(PieceType piece_type, uint64_t to_add);
         uint8_t getCastlingRights();
-        uint8_t getEnpassantSquare();
+        uint8_t getEnpassantFile();
         uint8_t getHalfMoveClock();
         void setBoardInfo(uint16_t new_info);
 

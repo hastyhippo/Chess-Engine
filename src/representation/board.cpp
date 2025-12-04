@@ -93,8 +93,8 @@ uint8_t Board::getHalfMoveClock() {
     return this->board_state.getHalfMoveClock();
 }
 
-uint8_t Board::getEnpassantSquare() {
-    return this->board_state.getEnpassantSquare();
+uint8_t Board::getEnpassantFile() {
+    return this->board_state.getEnpassantFile();
 }
 
 bool Board::getWhiteTurn() {

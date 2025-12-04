@@ -11,7 +11,6 @@
 
 using namespace std;
 
-
 class Move {
     private:
         uint8_t from_sq;

@@ -27,7 +27,7 @@ struct SMagic {
 enum PieceType {W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING, 
                 B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING};
 
-enum GenType {CAPTURES, EVASIONS, QUIET, ALL_MOVES};
+enum GenType {CAPTURES, EVASIONS, QUIET, ALL_MOVES, PINNED};
 
 vector<string>splitString(const string& input, const char delimiter);
 void printBB(uint64_t bb);
@@ -172,7 +172,8 @@ extern uint64_t bishop_masks[64];
 extern uint64_t ray_between_table[64][64];
 extern uint64_t ray_through[64][64];
 
-constexpr uint8_t EMPTY_SQ = 15;
+constexpr uint8_t EMPTY_SQ = 15; // Empty square is 0 in pieces_arr
+constexpr uint8_t PIECE_OFFSET = 1; // Pieces in pieces_arr start at 1 (enum values + 1)
 constexpr uint8_t NO_ENP = 8;
 
 

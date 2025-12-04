@@ -1,6 +1,8 @@
 #include "doctest.h"
 #include "../representation/board.h"
 #include "../misc/defines.h"
+#include "../initialisation/init.h"
+#include "../movegen/movegen.h"
 #include <chrono>
 
 void timedPerft(Board &b, int depth) {
@@ -12,7 +14,7 @@ void timedPerft(Board &b, int depth) {
     cout << "perft : " << depth <<" | " << nodes << " nodes in " << seconds << " seconds | " << nps/1e6 << "m nodes/sec\n"; 
 }
 
-DOCTEST_TEST_SUITE("perft") {
+DOCTEST_TEST_SUITE("perft") { // Sourced from https://www.chessprogramming.org/Perft_Results
     TEST_CASE("Starting position - perft(1-6)") {
         Board b("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
         CHECK(perft(b, 1) == 20);
@@ -23,7 +25,7 @@ DOCTEST_TEST_SUITE("perft") {
         // CHECK(perft(b, 6) == 119060324);
     }
 
-    TEST_CASE("Kiwipete - perft(1-5)") {
+    TEST_CASE("Kiwipete - perft(1-5)") { 
         Board b("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
         CHECK(perft(b, 1) == 48);
         CHECK(perft(b, 2) == 2039);
@@ -123,6 +125,11 @@ DOCTEST_TEST_SUITE("perft") {
         Board b("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
         for (int i = 1; i <= 5; i++) {
             timedPerft(b, i);
+        }
+
+        Board b2("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
+        for (int i = 1; i <= 6; i++) {
+            timedPerft(b2, i);
         }
     }
 }

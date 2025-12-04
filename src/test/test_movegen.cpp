@@ -4,6 +4,7 @@
 #include "../representation/board.h"
 #include "../movegen/move.h"
 #include "../movegen/movegen.h"
+#include "../initialisation/init.h"
 
 DOCTEST_TEST_SUITE("move generation correctness") {
     TEST_CASE("Pawn moves flipped") {

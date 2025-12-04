@@ -10,7 +10,14 @@
 
 using namespace std;
 
-
+void timedPerft2(Board &b, int depth) {
+    auto start = chrono::high_resolution_clock::now();
+    uint64_t nodes = perft(b, depth);
+    auto end = chrono::high_resolution_clock::now();
+    double seconds = chrono::duration<double>(end - start).count();
+    double nps = nodes/seconds;
+    cout << "perft : " << depth <<" | " << nodes << " nodes in " << seconds << " seconds | " << nps/1e6 << "m nodes/sec\n"; 
+}
 int main(int argc, char** argv) {
     init();
     
@@ -46,11 +53,13 @@ int main(int argc, char** argv) {
         getline(cin, s);
         Board b(s);
         int depth;
+        // timedPerft2(b, 5);
+        
         MoveList moves = generateMoves<ALL_MOVES>(b);
         for (Move a : moves) {
-            cout << "MOVE: " << a.getName() << "\n";
+            cout << a.getName() << "\n";
             b.makeMove(a);
-            b.printBoard();
+            // b.printBoard();
             b.unmakeMove();
         }
         cin >> depth;

@@ -38,7 +38,7 @@ uint8_t BoardState::getHalfMoveClock() {
     return (this->board_info & HALFMOVES_BITMASK) >> 4;
 }
 
-uint8_t BoardState::getEnpassantSquare() {
+uint8_t BoardState::getEnpassantFile() {
     return (this->board_info & ENPASSANT_BITMASK) >> 10;
 }
 
@@ -124,7 +124,7 @@ void BoardState::printBoard() {
         cout << " | ";
     }
     
-    uint8_t enp_file = getEnpassantSquare();
+    uint8_t enp_file = getEnpassantFile();
     if (enp_file != NO_ENP) {
         char file_char = 'a' + enp_file;
         cout << "En passant file: " << file_char << " |";

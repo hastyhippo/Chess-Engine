@@ -20,7 +20,7 @@ class BoardState {
         uint64_t piece_bb[6];
         // 0-> pawn | 1->knight | 2->bishops | 3->rooks | 4-> queens | 5-> kings |
         uint64_t colour_bb[2];
-        int8_t pieces_arr[64];
+        uint8_t pieces_arr[64];
     public:
         BoardState();
         uint64_t getPieceBitboard(PieceType piece_type);
@@ -28,7 +28,7 @@ class BoardState {
         uint64_t getColourPieces(bool white);
         void addPieceBitboard(PieceType piece_type, uint64_t to_add);
         uint8_t getCastlingRights();
-        uint8_t getEnpassantSquare();
+        uint8_t getEnpassantFile();
         uint8_t getHalfMoveClock();
         void setBoardInfo(uint16_t new_info);
         uint16_t getBoardInfo();
