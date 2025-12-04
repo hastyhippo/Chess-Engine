@@ -116,13 +116,13 @@ void Board::restoreState(const BoardStateData& state) {
 }
 
 // Piece bitboard methods
-uint64_t Board::getColourPieces(bool white) {
-    return this->colour_bb[1 - white];
+uint64_t Board::getColourPieces(Colour side) {
+    return this->colour_bb[side];
 }
 
 void Board::addPieceBitboard(uint8_t piece_type, uint64_t to_add) {
-    this->piece_bb[piece_type % 6] |= to_add;
-    this->colour_bb[piece_type / 6] |= to_add;
+    this->piece_bb[type_of(piece_type)] |= to_add;
+    this->colour_bb[color_of(piece_type)] |= to_add;
     this->pieces_arr[get_lsb(to_add)] = piece_type;
 }
 
@@ -130,28 +130,28 @@ uint8_t Board::pieceOn(int sq) {
     return this->pieces_arr[sq];
 }
 
-uint64_t Board::getPawnBitboard(bool white) {
-    return piece_bb[0] & colour_bb[1 - white];
+uint64_t Board::getPawnBitboard(Colour side) {
+    return piece_bb[PAWN] & colour_bb[side];
 }
 
-uint64_t Board::getKnightBitboard(bool white) {
-    return piece_bb[1] & colour_bb[1 - white];
+uint64_t Board::getKnightBitboard(Colour side) {
+    return piece_bb[KNIGHT] & colour_bb[side];
 }
 
-uint64_t Board::getBishopBitboard(bool white) {
-    return piece_bb[2] & colour_bb[1 - white];
+uint64_t Board::getBishopBitboard(Colour side) {
+    return piece_bb[BISHOP] & colour_bb[side];
 }
 
-uint64_t Board::getRookBitboard(bool white) {
-    return piece_bb[3] & colour_bb[1 - white];
+uint64_t Board::getRookBitboard(Colour side) {
+    return piece_bb[ROOK] & colour_bb[side];
 }
 
-uint64_t Board::getQueenBitboard(bool white) {
-    return piece_bb[4] & colour_bb[1 - white];
+uint64_t Board::getQueenBitboard(Colour side) {
+    return piece_bb[QUEEN] & colour_bb[side];
 }
 
-uint64_t Board::getKingBitboard(bool white) {
-    return piece_bb[5] & colour_bb[1 - white];
+uint64_t Board::getKingBitboard(Colour side) {
+    return piece_bb[KING] & colour_bb[side];
 }
 
 // Board info methods
@@ -196,17 +196,17 @@ void Board::makeMove(Move move) {
 
     uint8_t piece_on_target = pieceOn(to_sq);
     if ((piece_on_target != EMPTY_SQ ) && (move_flag != ENPASSANT)) {
-        piece_bb[piece_on_target % 6] ^= (1ULL << to_sq);
-        colour_bb[1 - side] ^= (1ULL << to_sq); // Captured piece is opponent's colour
+        piece_bb[type_of(piece_on_target)] ^= (1ULL << to_sq);
+        colour_bb[color_of(piece_on_target)] ^= (1ULL << to_sq); // Captured piece
         pieces_arr[to_sq] = EMPTY_SQ;
     }
-    piece_bb[moved_piece % 6] ^= (1ULL << from_sq);
-    colour_bb[side] ^= (1ULL << from_sq); // Moving piece
+    piece_bb[type_of(moved_piece)] ^= (1ULL << from_sq);
+    colour_bb[color_of(moved_piece)] ^= (1ULL << from_sq); // Moving piece
     pieces_arr[from_sq] = EMPTY_SQ;
 
-    uint8_t new_piece = move.isPromo() ? move.promoPiece() + (side == WHITE ? 0 : 6) : moved_piece;
-    piece_bb[new_piece % 6] ^= (1ULL << to_sq);
-    colour_bb[side] ^= (1ULL << to_sq); // New piece at destination
+    uint8_t new_piece = move.isPromo() ? piece(side, move.promoPiece()) : moved_piece;
+    piece_bb[type_of(new_piece)] ^= (1ULL << to_sq);
+    colour_bb[color_of(new_piece)] ^= (1ULL << to_sq); // New piece at destination
     pieces_arr[to_sq] = new_piece;
 
 
@@ -216,7 +216,7 @@ void Board::makeMove(Move move) {
     } else if (move_flag == CASTLE) {
         int castling_side = ((1ULL << to_sq) & G_FILE) ? KINGSIDE : QUEENSIDE;
         uint64_t rook_move_bb = castling_rook_moves[side][castling_side];
-        piece_bb[ROOK % 6] ^= rook_move_bb;
+        piece_bb[ROOK] ^= rook_move_bb;
         colour_bb[side] ^= rook_move_bb;
         
         uint8_t rook_from_sq = castling_rook_from_sq[side][castling_side];
@@ -228,8 +228,8 @@ void Board::makeMove(Move move) {
         uint8_t capt_sq = (side == WHITE) ? (to_sq - 8) : (to_sq + 8);
         uint8_t capt_piece = pieceOn(capt_sq);
 
-        piece_bb[capt_piece % 6] ^= (1ULL << capt_sq);
-        colour_bb[1 - side] ^= (1ULL << capt_sq); // Captured pawn is opponent's colour
+        piece_bb[type_of(capt_piece)] ^= (1ULL << capt_sq);
+        colour_bb[color_of(capt_piece)] ^= (1ULL << capt_sq); // Captured pawn
         pieces_arr[capt_sq] = EMPTY_SQ;
     }
     

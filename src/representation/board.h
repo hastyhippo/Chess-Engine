@@ -45,15 +45,15 @@ class Board {
         
         // Piece bitboard methods
         void addPieceBitboard(uint8_t piece_type, uint64_t to_add);
-        uint64_t getColourPieces(bool white);
+        uint64_t getColourPieces(Colour side);
         uint8_t pieceOn(int sq);
         
-        uint64_t getPawnBitboard(bool white);
-        uint64_t getKnightBitboard(bool white);
-        uint64_t getBishopBitboard(bool white);
-        uint64_t getRookBitboard(bool white);
-        uint64_t getQueenBitboard(bool white);
-        uint64_t getKingBitboard(bool white);
+        uint64_t getPawnBitboard(Colour side);
+        uint64_t getKnightBitboard(Colour side);
+        uint64_t getBishopBitboard(Colour side);
+        uint64_t getRookBitboard(Colour side);
+        uint64_t getQueenBitboard(Colour side);
+        uint64_t getKingBitboard(Colour side);
         
         // Board info methods
         uint8_t getCastlingRights();

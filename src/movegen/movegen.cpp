@@ -9,26 +9,27 @@ uint64_t enemy_occ_sq;
 uint64_t all_occ_sq;
 uint64_t pinned_pieces;
 bool in_check;
-bool white;
 unordered_map<int, uint64_t> pinned_map;
 int num_attackers;
+Colour side;
 
 template <GenType Type>
 MoveList generateMoves(Board& b) {
     pinned_pieces = 0ULL;
-    white = b.getWhiteTurn();
-    friendly_occ_sq = b.getColourPieces(b.getWhiteTurn());
-    enemy_occ_sq = b.getColourPieces(!b.getWhiteTurn());
+    side = b.getWhiteTurn() ? WHITE : BLACK;
+
+    friendly_occ_sq = b.getColourPieces(side);
+    enemy_occ_sq = b.getColourPieces(~side);
     all_occ_sq = friendly_occ_sq | enemy_occ_sq;
-    if (!b.getKingBitboard(white)) {
+    if (!b.getKingBitboard(side)) {
         b.printBoard();
     }
-    assert(b.getKingBitboard(white));
-    uint8_t king_sq = _tzcnt_u64(b.getKingBitboard(white));
+    assert(b.getKingBitboard(side));
+    uint8_t king_sq = _tzcnt_u64(b.getKingBitboard(side));
 
     // Precalculate for pins
-    uint64_t x_ray = (getBishopAttacks(enemy_occ_sq, king_sq) & (b.getBishopBitboard(!white) | b.getQueenBitboard(!white)))  
-    | (getRookAttacks(enemy_occ_sq, king_sq) & (b.getRookBitboard(!white) | b.getQueenBitboard(!white)));
+    uint64_t x_ray = (getBishopAttacks(enemy_occ_sq, king_sq) & (b.getBishopBitboard(~side) | b.getQueenBitboard(~side)))  
+    | (getRookAttacks(enemy_occ_sq, king_sq) & (b.getRookBitboard(~side) | b.getQueenBitboard(~side)));
         
     while(x_ray) {
         int sniper_sq = pop_lsb(&x_ray);
@@ -39,7 +40,7 @@ MoveList generateMoves(Board& b) {
         }
     }
     MoveList moves{};
-    uint64_t attackers = attackers_to(!white, king_sq, all_occ_sq, b);
+    uint64_t attackers = attackers_to(~side, king_sq, all_occ_sq, b);
     num_attackers = __popcnt64(attackers);
     in_check = num_attackers > 0;
     uint64_t valid_sq = (Type == EVASIONS) ? ray_between(get_lsb(attackers), king_sq) :
@@ -62,33 +63,18 @@ MoveList generate_all_moves(Board &b, uint64_t valid_sq) {
     return moves;
 }
 
-// // bool square_attacked_after_move(bool attacker_colour, uint8_t sq, Move , uint64_t base_occupancy, Board& b) {
-//     uint64_t from_sq = 1ULL << m.getFromSq();
-//     uint64_t to_sq = 1ULL << m.getToSq();
-//     uint64_t modified_occ = base_occupancy ^ from_sq | to_sq;
-
-//     if (m.getMoveFlag() == ENPASSANT) {
-//         uint64_t captured_pawn = shift(to_sq,(white ? SOUTH : NORTH));
-//         modified_occ ^= captured_pawn;
-//         to_sq |= captured_pawn;
-//     }
-
-//     return has_attackers(attacker_colour, sq, modified_occ, to_sq, b) != 0;
-// }
-
-
 // Use template here because knowing if we calculate captures only can prune out chunks of logic
 template<GenType Type>
 void addPawnMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
-    int8_t forward = white ? NORTH : SOUTH;
+    int8_t forward = side == WHITE ? NORTH : SOUTH;
 
-    uint64_t pawns = b.getPawnBitboard(white) & ~pinned_pieces;
-    uint64_t pr_rank = white ? RANK_8 : RANK_1; // promotion rank
-    uint64_t pr2_rank = white ? RANK_7 : RANK_2; // promotion rank
+    uint64_t pawns = b.getPawnBitboard(side) & ~pinned_pieces;
+    uint64_t pr_rank = side == WHITE ? RANK_8 : RANK_1; // promotion rank
+    uint64_t pr2_rank = side == WHITE ? RANK_7 : RANK_2; // promotion rank
 
     if constexpr (Type != CAPTURES) {
         uint64_t push1_pawns = shift(pawns, forward) & ~all_occ_sq;
-        uint64_t push2_pawns = shift(push1_pawns & (white ? RANK_3 : RANK_6), forward) & ~all_occ_sq;
+        uint64_t push2_pawns = shift(push1_pawns & (side == WHITE ? RANK_3 : RANK_6), forward) & ~all_occ_sq;
         
         push1_pawns &= valid_sq;
         push2_pawns &= valid_sq;
@@ -114,7 +100,7 @@ void addPawnMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
         uint64_t capt_pawns = pawns;
         while(capt_pawns) {
             uint8_t pawn_sq = pop_lsb(&capt_pawns);
-            uint64_t attack_bb = pawn_attacks[1 - white][pawn_sq] & enemy_occ_sq & valid_sq;
+            uint64_t attack_bb = pawn_attacks[side][pawn_sq] & enemy_occ_sq & valid_sq;
 
             while(attack_bb) {
                 uint8_t to_sq = pop_lsb(&attack_bb);
@@ -134,22 +120,22 @@ void addPawnMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
         if (enp_file != NO_ENP) {
             uint64_t can_enp = (enp_file != 0) ? get_file[enp_file + WEST] : 0;
             can_enp |= (enp_file != N - 1) ? get_file[enp_file + EAST] : 0;
-            can_enp &= (white ? RANK_5 : RANK_4) & pawns;
-            int enp_sq = enp_file + 8 * (white ? 5 : 2);
+            can_enp &= (side == WHITE ? RANK_5 : RANK_4) & pawns;
+            int enp_sq = enp_file + 8 * (side == WHITE ? 5 : 2);
     
-            uint64_t king_bb = b.getKingBitboard(white);
+            uint64_t king_bb = b.getKingBitboard(side);
             if (!king_bb) return;
             uint8_t king_sq = get_lsb(king_bb);
             
             while (can_enp) {
                 uint8_t from_sq = pop_lsb(&can_enp);
                 uint8_t to_sq = enp_sq;
-                uint8_t captured_pawn_sq = enp_sq + (white ? SOUTH : NORTH);
+                uint8_t captured_pawn_sq = enp_sq - forward;
                 uint64_t modified_occ = all_occ_sq;
                 modified_occ ^= (1ULL << from_sq);
                 modified_occ ^= (1ULL << captured_pawn_sq);
                 modified_occ |= (1ULL << to_sq);
-                if (!has_attackers(!white, king_sq, modified_occ, 1ULL << captured_pawn_sq, b)) {
+                if (!has_attackers(~side, king_sq, modified_occ, 1ULL << captured_pawn_sq, b)) {
                     moves.add(Move(from_sq, to_sq, ENPASSANT));
                 }
             }
@@ -158,14 +144,14 @@ void addPawnMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
 }
 
 void addPinnedPawns(Board& b, MoveList& moves, uint64_t valid_sq) {
-    int forward = white ? NORTH : SOUTH;
-    uint64_t pinned_pawns = b.getPawnBitboard(white) & pinned_pieces;
-    uint64_t pr_rank = white ? RANK_8 : RANK_1; // promotion rank
-    uint64_t pr2_rank = white ? RANK_7 : RANK_2; // promotion rank
+    int forward = side == WHITE ? NORTH : SOUTH;
+    uint64_t pinned_pawns = b.getPawnBitboard(side) & pinned_pieces;
+    uint64_t pr_rank = side == WHITE ? RANK_8 : RANK_1; // promotion rank
+    uint64_t pr2_rank = side == WHITE ? RANK_7 : RANK_2; // promotion rank
     while(pinned_pawns) {
         uint8_t from_sq = pop_lsb(&pinned_pawns);
         uint64_t allowed_sq = pinned_map[from_sq];
-        uint64_t second_rank = white ? RANK_3 : RANK_6;
+        uint64_t second_rank = side == WHITE ? RANK_3 : RANK_6;
         // cout << "Allowed\n";
         // printBB(allowed_sq);
         // Single push
@@ -188,7 +174,7 @@ void addPinnedPawns(Board& b, MoveList& moves, uint64_t valid_sq) {
         }
 
 
-        uint64_t capt_sq = pawn_attacks[1 - white][from_sq] & enemy_occ_sq & allowed_sq & valid_sq;
+        uint64_t capt_sq = pawn_attacks[side][from_sq] & enemy_occ_sq & allowed_sq & valid_sq;
         // printBB(pawn_attacks[white][from_sq]);
         while(capt_sq) {
             uint8_t to_sq = pop_lsb(&capt_sq);
@@ -206,7 +192,7 @@ void addPinnedPawns(Board& b, MoveList& moves, uint64_t valid_sq) {
 
 
 void addKnightMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
-    uint64_t knights = b.getKnightBitboard(white) & ~pinned_pieces;
+    uint64_t knights = b.getKnightBitboard(side) & ~pinned_pieces;
     while(knights) {
         uint8_t sq = pop_lsb(&knights);
         uint64_t knight_sq = knight_moves[sq] & ~friendly_occ_sq & valid_sq;
@@ -232,9 +218,9 @@ uint64_t getRookAttacks(uint64_t occ, int sq) {
 }
 
 void addSlidingMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
-    uint64_t bishops = b.getBishopBitboard(white);
-    uint64_t rooks = b.getRookBitboard(white);
-    uint64_t queens = b.getQueenBitboard(white);
+    uint64_t bishops = b.getBishopBitboard(side);
+    uint64_t rooks = b.getRookBitboard(side);
+    uint64_t queens = b.getQueenBitboard(side);
 
     while(bishops) {
         uint8_t from_sq = pop_lsb(&bishops);
@@ -273,7 +259,7 @@ void addSlidingMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
 
 
 void addKingMoves(Board& b, MoveList& moves) {
-    uint64_t king = b.getKingBitboard(white);
+    uint64_t king = b.getKingBitboard(side);
     assert(king);
     if (!king) return;
 
@@ -282,49 +268,49 @@ void addKingMoves(Board& b, MoveList& moves) {
 
     while(king_sq) {
         uint8_t target_sq = pop_lsb(&king_sq);
-        if (attackers_to(!white, target_sq, all_occ_sq ^ (1ULL << sq), b)) continue;
+        if (attackers_to(~side, target_sq, all_occ_sq ^ (1ULL << sq), b)) continue;
         moves.add(Move(sq, target_sq, 0));
     }
     if (in_check) return;
     //Castling
     for (int i = 0; i < 2; i++) {
-        if ((b.getCastlingRights() & (1ULL << (i + (white ? 0 : 2)))) != 0 && (all_occ_sq & castling_clear_sq[1 - white][i]) == 0) {
-            uint64_t cleared_sq = castling_unattacked_sq[1 - white][i];
+        if ((b.getCastlingRights() & (1ULL << (i + (side == WHITE ? 0 : 2)))) != 0 && (all_occ_sq & castling_clear_sq[side][i]) == 0) {
+            uint64_t cleared_sq = castling_unattacked_sq[side][i];
             bool can_castle = true;
             while(cleared_sq) {
                 uint8_t clear_sq = pop_lsb(&cleared_sq);
-                can_castle = !has_attackers(!white, clear_sq, all_occ_sq, b);
+                can_castle = !has_attackers(~side, clear_sq, all_occ_sq, b);
                 if (!can_castle) break;
             }
             if (can_castle) {
-                moves.add(Move(sq, castling_target_sq[1 - white][i], CASTLE));
+                moves.add(Move(sq, castling_target_sq[side][i], CASTLE));
             }
         }
     }
 }
 
-uint64_t attackers_to(bool colour, uint8_t sq, uint64_t occ, Board& b) { // attacker colour
-    return  (pawn_attacks[colour][sq] & b.getPawnBitboard(colour)) |
-            (knight_moves[sq] & b.getKnightBitboard(colour)) |
-            (getBishopAttacks(occ, sq) & (b.getBishopBitboard(colour) | b.getQueenBitboard(colour))) | 
-            (getRookAttacks(occ, sq) & (b.getRookBitboard(colour) | b.getQueenBitboard(colour))) | 
-            (king_moves[sq] & b.getKingBitboard(colour));
+uint64_t attackers_to(Colour side, uint8_t sq, uint64_t occ, Board& b) { // attacker colour
+    return  (pawn_attacks[~side][sq] & b.getPawnBitboard(side)) |
+            (knight_moves[sq] & b.getKnightBitboard(side)) |
+            (getBishopAttacks(occ, sq) & (b.getBishopBitboard(side) | b.getQueenBitboard(side))) | 
+            (getRookAttacks(occ, sq) & (b.getRookBitboard(side) | b.getQueenBitboard(side))) | 
+            (king_moves[sq] & b.getKingBitboard(side));
 }
 
-uint64_t has_attackers(bool colour, uint8_t sq, uint64_t occ, Board& b) { // attacker colour
-    return  ((pawn_attacks[colour][sq] & b.getPawnBitboard(colour)) ||
-              (knight_moves[sq] & b.getKnightBitboard(colour)) ||
-              (getBishopAttacks(occ, sq) & (b.getBishopBitboard(colour) | b.getQueenBitboard(colour))) ||
-              (getRookAttacks(occ, sq) & (b.getRookBitboard(colour) | b.getQueenBitboard(colour))) ||
-             (king_moves[sq] & b.getKingBitboard(colour)));
+uint64_t has_attackers(Colour side, uint8_t sq, uint64_t occ, Board& b) { // attacker colour
+    return  ((pawn_attacks[~side][sq] & b.getPawnBitboard(side)) ||
+              (knight_moves[sq] & b.getKnightBitboard(side)) ||
+              (getBishopAttacks(occ, sq) & (b.getBishopBitboard(side) | b.getQueenBitboard(side))) ||
+              (getRookAttacks(occ, sq) & (b.getRookBitboard(side) | b.getQueenBitboard(side))) ||
+             (king_moves[sq] & b.getKingBitboard(side)));
 }
 
-uint64_t has_attackers(bool colour, uint8_t sq, uint64_t occ, uint64_t ignore_sq, Board& b) { // attacker colour
-    return  ((pawn_attacks[colour][sq] & b.getPawnBitboard(colour) & ~ignore_sq) ||
-              (knight_moves[sq] & b.getKnightBitboard(colour) & ~ignore_sq) ||
-              (getBishopAttacks(occ, sq) & (b.getBishopBitboard(colour) | b.getQueenBitboard(colour)) & ~ignore_sq) ||
-              (getRookAttacks(occ, sq) & (b.getRookBitboard(colour) | b.getQueenBitboard(colour)) & ~ignore_sq) ||
-             (king_moves[sq] & b.getKingBitboard(colour)));
+uint64_t has_attackers(Colour side, uint8_t sq, uint64_t occ, uint64_t ignore_sq, Board& b) { // attacker colour
+    return  ((pawn_attacks[~side][sq] & b.getPawnBitboard(side) & ~ignore_sq) ||
+              (knight_moves[sq] & b.getKnightBitboard(side) & ~ignore_sq) ||
+              (getBishopAttacks(occ, sq) & (b.getBishopBitboard(side) | b.getQueenBitboard(side)) & ~ignore_sq) ||
+              (getRookAttacks(occ, sq) & (b.getRookBitboard(side) | b.getQueenBitboard(side)) & ~ignore_sq) ||
+             (king_moves[sq] & b.getKingBitboard(side)));
 }
 
 // return a ray that is always inclusive of sq_1 and ends 1 square before sq_2
