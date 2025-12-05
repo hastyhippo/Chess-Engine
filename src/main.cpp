@@ -45,10 +45,8 @@ int main(int argc, char** argv) {
     //     cout << a.getName() << " \n";
     // }
     // assert(moves2.size() == moves.size());
-    Board b("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    for (int i = 1; i <= 5; i++) {
-        timedPerft2(b, i);
-    }
+    Board b("r3k2r/pppbqppp/2np1n2/2b1p1B1/2B1P3/2NP1N2/PPPQ1PPP/R3K2R w KQkq - 0 1");
+    timedPerft2(b, 5);
     while(true) {
         
         string s;
