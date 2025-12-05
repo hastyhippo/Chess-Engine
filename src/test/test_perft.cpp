@@ -21,7 +21,7 @@ DOCTEST_TEST_SUITE("perft") { // Sourced from https://www.chessprogramming.org/P
         CHECK(perft(b, 2) == 400);
         CHECK(perft(b, 3) == 8902);
         CHECK(perft(b, 4) == 197281);
-        // CHECK(perft(b, 5) == 4865609);
+        CHECK(perft(b, 5) == 4865609);
         // CHECK(perft(b, 6) == 119060324);
     }
 
@@ -30,7 +30,7 @@ DOCTEST_TEST_SUITE("perft") { // Sourced from https://www.chessprogramming.org/P
         CHECK(perft(b, 1) == 48);
         CHECK(perft(b, 2) == 2039);
         CHECK(perft(b, 3) == 97862);
-        // CHECK(perft(b, 4) == 4085603);
+        CHECK(perft(b, 4) == 4085603);
         // CHECK(perft(b, 5) == 193690690);
     }
 
@@ -40,8 +40,8 @@ DOCTEST_TEST_SUITE("perft") { // Sourced from https://www.chessprogramming.org/P
         CHECK(perft(b, 2) == 191);
         CHECK(perft(b, 3) == 2812);
         CHECK(perft(b, 4) == 43238);
-        // CHECK(perft(b, 5) == 674624);
-        // CHECK(perft(b, 6) == 11030083);
+        CHECK(perft(b, 5) == 674624);
+        CHECK(perft(b, 6) == 11030083);
         // CHECK(perft(b, 7) == 178633661);
     }
 
@@ -50,7 +50,7 @@ DOCTEST_TEST_SUITE("perft") { // Sourced from https://www.chessprogramming.org/P
         CHECK(perft(b, 1) == 44);
         CHECK(perft(b, 2) == 1486);
         CHECK(perft(b, 3) == 62379);
-        // CHECK(perft(b, 4) == 2103487);
+        CHECK(perft(b, 4) == 2103487);
         // CHECK(perft(b, 5) == 89941194);
     }
 
@@ -59,7 +59,7 @@ DOCTEST_TEST_SUITE("perft") { // Sourced from https://www.chessprogramming.org/P
         CHECK(perft(b, 1) == 46);
         CHECK(perft(b, 2) == 2079);
         CHECK(perft(b, 3) == 89890);
-        // CHECK(perft(b, 4) == 3894594);
+        CHECK(perft(b, 4) == 3894594);
         // CHECK(perft(b, 5) == 164075551);
     }
 
@@ -93,8 +93,8 @@ DOCTEST_TEST_SUITE("perft") { // Sourced from https://www.chessprogramming.org/P
         CHECK(perft(b7, 4) == 1720476);
 
         // Promote out of Check
-        // Board b8("2K2r2/4P3/8/8/8/8/8/3k4 w - - 0 1");
-        // CHECK(perft(b8, 6) == 3821001);
+        Board b8("2K2r2/4P3/8/8/8/8/8/3k4 w - - 0 1");
+        CHECK(perft(b8, 6) == 3821001);
 
         // Discovered Check
         Board b9("8/8/1P2K3/8/2n5/1q6/8/5k2 b - - 0 1");
@@ -123,14 +123,8 @@ DOCTEST_TEST_SUITE("perft") { // Sourced from https://www.chessprogramming.org/P
 
     TEST_CASE("perft Timed") {
         Board b("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-        timedPerft(b, 6);
-        // for (int i = 1; i <= 5; i++) {
-        //     timedPerft(b, i);
-        // }
-
-        // Board b2("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
-        // for (int i = 1; i <= 6; i++) {
-        //     timedPerft(b2, i);
-        // }
+        for (int i = 1; i <= 5; i++) {
+            timedPerft(b, i);
+        }
     }
 }

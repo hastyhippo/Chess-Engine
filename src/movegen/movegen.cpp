@@ -14,7 +14,7 @@ int num_attackers;
 Colour side;
 
 template <GenType Type>
-MoveList generateMoves(Board& b) {
+MoveList generate_moves(Board& b) {
     pinned_pieces = 0ULL;
     side = b.getWhiteTurn() ? WHITE : BLACK;
 
@@ -152,8 +152,6 @@ void addPinnedPawns(Board& b, MoveList& moves, uint64_t valid_sq) {
         uint8_t from_sq = pop_lsb(&pinned_pawns);
         uint64_t allowed_sq = pinned_map[from_sq];
         uint64_t second_rank = side == WHITE ? RANK_3 : RANK_6;
-        // cout << "Allowed\n";
-        // printBB(allowed_sq);
         // Single push
         uint64_t push1 = (1ULL << (from_sq + forward)) & ~all_occ_sq & allowed_sq & valid_sq;
         uint64_t push2 = (shift(push1 & second_rank, forward)) & ~all_occ_sq & allowed_sq & valid_sq;
@@ -172,10 +170,7 @@ void addPinnedPawns(Board& b, MoveList& moves, uint64_t valid_sq) {
             uint8_t to_sq = pop_lsb(&push2);
             moves.add(Move(from_sq, to_sq, DOUBLE_PUSH));
         }
-
-
         uint64_t capt_sq = pawn_attacks[side][from_sq] & enemy_occ_sq & allowed_sq & valid_sq;
-        // printBB(pawn_attacks[white][from_sq]);
         while(capt_sq) {
             uint8_t to_sq = pop_lsb(&capt_sq);
             if ((1ULL << to_sq) & pr_rank) {
@@ -279,7 +274,7 @@ void addKingMoves(Board& b, MoveList& moves) {
             bool can_castle = true;
             while(cleared_sq) {
                 uint8_t clear_sq = pop_lsb(&cleared_sq);
-                can_castle = !has_attackers(~side, clear_sq, all_occ_sq, b);
+                can_castle = !has_attackers(~side, clear_sq, all_occ_sq, 0ULL, b);
                 if (!can_castle) break;
             }
             if (can_castle) {
@@ -297,14 +292,6 @@ uint64_t attackers_to(Colour side, uint8_t sq, uint64_t occ, Board& b) { // atta
             (king_moves[sq] & b.getKingBitboard(side));
 }
 
-uint64_t has_attackers(Colour side, uint8_t sq, uint64_t occ, Board& b) { // attacker colour
-    return  ((pawn_attacks[~side][sq] & b.getPawnBitboard(side)) ||
-              (knight_moves[sq] & b.getKnightBitboard(side)) ||
-              (getBishopAttacks(occ, sq) & (b.getBishopBitboard(side) | b.getQueenBitboard(side))) ||
-              (getRookAttacks(occ, sq) & (b.getRookBitboard(side) | b.getQueenBitboard(side))) ||
-             (king_moves[sq] & b.getKingBitboard(side)));
-}
-
 uint64_t has_attackers(Colour side, uint8_t sq, uint64_t occ, uint64_t ignore_sq, Board& b) { // attacker colour
     return  ((pawn_attacks[~side][sq] & b.getPawnBitboard(side) & ~ignore_sq) ||
               (knight_moves[sq] & b.getKnightBitboard(side) & ~ignore_sq) ||
@@ -318,8 +305,8 @@ uint64_t ray_between(int sq_1, int sq_2) {
     return ray_between_table[sq_1][sq_2];
 }
 
-template MoveList generateMoves<ALL_MOVES>(Board& b);
-template MoveList generateMoves<CAPTURES>(Board& b);
+template MoveList generate_moves<ALL_MOVES>(Board& b);
+template MoveList generate_moves<CAPTURES>(Board& b);
 
 template void addPawnMoves<ALL_MOVES>(Board& b, MoveList& moves, uint64_t valid_sq);
 template void addPawnMoves<CAPTURES>(Board& b, MoveList& moves, uint64_t valid_sq);

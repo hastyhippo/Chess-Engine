@@ -71,8 +71,8 @@ class Board {
 
         // Game state methods
         bool getWhiteTurn();
-        void makeMove(Move move);
-        void unmakeMove(Move move);
+        void make_move(Move move);
+        void unmake_move(Move move);
         void printBoard();
 };
 

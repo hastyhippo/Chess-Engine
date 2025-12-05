@@ -183,7 +183,7 @@ bool Board::getWhiteTurn() {
 constexpr uint8_t NO_PIECE = 255;
 constexpr uint8_t NO_ENP_SQ = 255;
 
-void Board::makeMove(Move m) {
+void Board::make_move(Move m) {
     Colour side = white_turn ? WHITE : BLACK;
     
     // Save old board_info BEFORE modifying it
@@ -238,7 +238,7 @@ void Board::makeMove(Move m) {
     this->white_turn = !this->white_turn;
 }
 
-void Board::unmakeMove(Move m) {
+void Board::unmake_move(Move m) {
     BoardState prev_state = state_history.back();
     state_history.pop_back();
 

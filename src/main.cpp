@@ -55,12 +55,12 @@ int main(int argc, char** argv) {
         int depth;
         // timedPerft2(b, 5);
         
-        MoveList moves = generateMoves<ALL_MOVES>(b);
+        MoveList moves = generate_moves<ALL_MOVES>(b);
         for (Move a : moves) {
             cout << a.getName() << "\n";
-            b.makeMove(a);
+            b.make_move(a);
             // b.printBoard();
-            b.unmakeMove(a);
+            b.unmake_move(a);
         }
         cin >> depth;
         vector<string> v;
@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
     vector<string> v;
     // divided_perft(b, 3,  1,   v);
     Board b2("r3k2r/p1pNqpb1/bn2pnp1/3P4/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1");
-    MoveList moves = generateMoves<ALL_MOVES>(b2);
+    MoveList moves = generate_moves<ALL_MOVES>(b2);
     // b2.printBoard();
     // cout << "STARTING POSITION\n";
     cout <<  moves.size << "\n";
