@@ -159,17 +159,14 @@ void UCI::go(string cmd) {
     }
     
     stop_search = false;
-    
-    Colour side_to_move = board.getWhiteTurn() ? WHITE : BLACK;
-    int best_value = INT32_MIN;
-    
+        
     MoveList moves = generate_moves<ALL_MOVES>(board);
     if (moves.size == 0) {
         cout << "bestmove (none)\n";
         return;
     }
     
-    Move best_move = get_best_move(board, side_to_move, depth);
+    Move best_move = get_best_move(board, board.getWhiteTurn() ? WHITE : BLACK, depth);
     cout << "bestmove " << move_to_uci(best_move) << "\n";
 }
 

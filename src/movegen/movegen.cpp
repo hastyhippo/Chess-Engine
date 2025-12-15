@@ -28,8 +28,8 @@ MoveList generate_moves(Board& b) {
     uint8_t king_sq = _tzcnt_u64(b.getKingBitboard(side));
 
     // Precalculate for pins
-    uint64_t x_ray = (getBishopAttacks(enemy_occ_sq, king_sq) & (b.getBishopBitboard(~side) | b.getQueenBitboard(~side)))  
-    | (getRookAttacks(enemy_occ_sq, king_sq) & (b.getRookBitboard(~side) | b.getQueenBitboard(~side)));
+    uint64_t x_ray = (get_bishop_attacks(enemy_occ_sq, king_sq) & (b.getBishopBitboard(~side) | b.getQueenBitboard(~side)))  
+    | (get_rook_attacks(enemy_occ_sq, king_sq) & (b.getRookBitboard(~side) | b.getQueenBitboard(~side)));
         
     while(x_ray) {
         int sniper_sq = pop_lsb(&x_ray);
@@ -40,7 +40,7 @@ MoveList generate_moves(Board& b) {
         }
     }
     MoveList moves{};
-    uint64_t attackers = b.attackers_to(king_sq);
+    uint64_t attackers = b.attackers_to(king_sq, 0ULL, all_occ_sq);
     num_attackers = __popcnt64(attackers);
     in_check = num_attackers > 0;
     uint64_t valid_sq = (Type == EVASIONS) ? ray_between(get_lsb(attackers), king_sq) :
@@ -135,7 +135,7 @@ void addPawnMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
                 modified_occ ^= (1ULL << from_sq);
                 modified_occ ^= (1ULL << captured_pawn_sq);
                 modified_occ |= (1ULL << to_sq);
-                if (!b.attackers_to(king_sq, 1ULL << captured_pawn_sq)) {
+                if (!b.attackers_to(king_sq, 1ULL << captured_pawn_sq, modified_occ)) {
                     moves.add(Move(from_sq, to_sq, ENPASSANT));
                 }
             }
@@ -198,6 +198,7 @@ void addKnightMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
     }
 }
 
+
 void addSlidingMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
     uint64_t bishops = b.getBishopBitboard(side);
     uint64_t rooks = b.getRookBitboard(side);
@@ -205,7 +206,7 @@ void addSlidingMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
 
     while(bishops) {
         uint8_t from_sq = pop_lsb(&bishops);
-        uint64_t attacked_sq = getBishopAttacks(all_occ_sq, from_sq) & ~friendly_occ_sq & valid_sq;
+        uint64_t attacked_sq = get_bishop_attacks(all_occ_sq, from_sq) & ~friendly_occ_sq & valid_sq;
         if ((1ULL<<from_sq) & pinned_pieces) attacked_sq &= pinned_map[from_sq];
 
         while(attacked_sq) {
@@ -216,7 +217,7 @@ void addSlidingMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
 
     while(rooks) {
         uint8_t from_sq = pop_lsb(&rooks);
-        uint64_t attacked_sq = getRookAttacks(all_occ_sq, from_sq) & ~friendly_occ_sq & valid_sq;
+        uint64_t attacked_sq = get_rook_attacks(all_occ_sq, from_sq) & ~friendly_occ_sq & valid_sq;
         if ((1ULL<<from_sq) & pinned_pieces) attacked_sq &= pinned_map[from_sq];
 
         while(attacked_sq) {
@@ -227,8 +228,8 @@ void addSlidingMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
 
     while(queens) {
         uint8_t from_sq = pop_lsb(&queens);
-        uint64_t attacked_sq = (getRookAttacks(all_occ_sq, from_sq) 
-                            | getBishopAttacks(all_occ_sq, from_sq)) & ~friendly_occ_sq & valid_sq;
+        uint64_t attacked_sq = (get_rook_attacks(all_occ_sq, from_sq) 
+                            | get_bishop_attacks(all_occ_sq, from_sq)) & ~friendly_occ_sq & valid_sq;
         if ((1ULL<<from_sq) & pinned_pieces) attacked_sq &= pinned_map[from_sq];
 
         while(attacked_sq) {
@@ -260,7 +261,7 @@ void addKingMoves(Board& b, MoveList& moves) {
             bool can_castle = true;
             while(cleared_sq) {
                 uint8_t clear_sq = pop_lsb(&cleared_sq);
-                can_castle = !b.attackers_to(clear_sq);
+                can_castle = !b.attackers_to(clear_sq, 0ULL, all_occ_sq);
                 if (!can_castle) break;
             }
             if (can_castle) {
@@ -269,6 +270,7 @@ void addKingMoves(Board& b, MoveList& moves) {
         }
     }
 }
+
 
 // return a ray that is always inclusive of sq_1 and ends 1 square before sq_2
 uint64_t ray_between(int sq_1, int sq_2) {

@@ -318,31 +318,19 @@ uint64_t Board::get_occupancy() {
 }
 
 uint64_t Board::attackers_to(uint8_t sq) { // attacker colour
-    uint64_t occ = get_occupancy();
-    Colour side = getWhiteTurn() ? BLACK: WHITE;
-    return  (pawn_attacks[~side][sq] & getPawnBitboard(side)) |
-            (knight_moves[sq] & getKnightBitboard(side)) |
-            (get_bishop_attacks(occ, sq) & (getBishopBitboard(side) | getQueenBitboard(side))) | 
-            (get_rook_attacks(occ, sq) & (getRookBitboard(side) | getQueenBitboard(side))) | 
-            (king_moves[sq] & getKingBitboard(side));
+    return attackers_to(sq, 0ULL, get_occupancy());
 }
 
 uint64_t Board::attackers_to(uint8_t sq, uint64_t ignore_sq) { // attacker colour
-    uint64_t occ = get_occupancy();
-    Colour side = getWhiteTurn() ? BLACK : WHITE;
-    return  ((pawn_attacks[~side][sq] & getPawnBitboard(side) & ~ignore_sq) ||
-              (knight_moves[sq] & getKnightBitboard(side) & ~ignore_sq) ||
-              (get_bishop_attacks(occ, sq) & (getBishopBitboard(side) | getQueenBitboard(side)) & ~ignore_sq) ||
-              (get_rook_attacks(occ, sq) & (getRookBitboard(side) | getQueenBitboard(side)) & ~ignore_sq) ||
-             (king_moves[sq] & getKingBitboard(side)));
+    return attackers_to(sq, ignore_sq, get_occupancy());
 }
 
 uint64_t Board::attackers_to(uint8_t sq, uint64_t ignore_sq, uint64_t occ) { // attacker colour
     Colour side = getWhiteTurn() ? BLACK : WHITE;
-    return  ((pawn_attacks[~side][sq] & getPawnBitboard(side) & ~ignore_sq) ||
-              (knight_moves[sq] & getKnightBitboard(side) & ~ignore_sq) ||
-              (get_bishop_attacks(occ, sq) & (getBishopBitboard(side) | getQueenBitboard(side)) & ~ignore_sq) ||
-              (get_rook_attacks(occ, sq) & (getRookBitboard(side) | getQueenBitboard(side)) & ~ignore_sq) ||
+    return  ((pawn_attacks[~side][sq] & getPawnBitboard(side) & ~ignore_sq) |
+              (knight_moves[sq] & getKnightBitboard(side) & ~ignore_sq) |
+              (get_bishop_attacks(occ, sq) & (getBishopBitboard(side) | getQueenBitboard(side)) & ~ignore_sq) |
+              (get_rook_attacks(occ, sq) & (getRookBitboard(side) | getQueenBitboard(side)) & ~ignore_sq) |
              (king_moves[sq] & getKingBitboard(side)));
 }
 

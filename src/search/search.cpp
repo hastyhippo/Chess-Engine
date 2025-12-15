@@ -10,7 +10,7 @@ int negamax(Board &b, Colour side, int depth) {
     
     MoveList possible_moves = generate_moves<ALL_MOVES>(b);
     if (possible_moves.size == 0) {
-
+        
     }
 
     int value = INT32_MIN;
@@ -42,7 +42,7 @@ Move get_best_move(Board &b, Colour side, int depth) {
     for (Move m : possible_moves) {
         b.make_move(m);
         Colour opponent_side = (side == WHITE) ? BLACK : WHITE;
-        int value = -negamax<NODE>(b, opponent_side, depth - 1);
+        int value = -negamax(b, opponent_side, depth - 1);
         b.unmake_move(m);
 
         cout << "Move: " << m.getName() << " | " << value << "\n";
