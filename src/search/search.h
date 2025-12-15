@@ -4,6 +4,5 @@
 #include "../movegen/movegen.h"
 #include "../search/eval.h"
 
-template<SearchType Type>
 int negamax(Board &b, Colour side, int depth);
 Move get_best_move(Board &b, Colour side, int depth);

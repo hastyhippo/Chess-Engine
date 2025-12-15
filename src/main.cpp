@@ -38,6 +38,9 @@ int main(int argc, char** argv) {
         if (input == "uci") {
            UCI uci;
            cout << "uciok\n";
+           uci.loop();
+        } else {
+            break;
         }
     }
     // Board b("N6N/4Bb2/2N3b1/3NB3/8/8/8/N1k2K1N w - - 0 1");
