@@ -269,3 +269,5 @@ inline uint8_t get_lsb(uint64_t& b) {
 constexpr Colour operator~(Colour c) { return Colour(c ^ 1); }
 
 // SOLVER
+uint64_t get_rook_attacks(uint64_t occ, int sq);
+uint64_t get_bishop_attacks(uint64_t occ, int sq);

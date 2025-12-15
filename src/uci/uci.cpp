@@ -162,7 +162,6 @@ void UCI::go(string cmd) {
     
     Colour side_to_move = board.getWhiteTurn() ? WHITE : BLACK;
     int best_value = INT32_MIN;
-    Move best_move;
     
     MoveList moves = generate_moves<ALL_MOVES>(board);
     if (moves.size == 0) {
@@ -170,7 +169,7 @@ void UCI::go(string cmd) {
         return;
     }
     
-    Move best_move = get_best_move(board,)
+    Move best_move = get_best_move(board, side_to_move, depth);
     cout << "bestmove " << move_to_uci(best_move) << "\n";
 }
 

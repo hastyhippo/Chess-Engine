@@ -40,7 +40,7 @@ MoveList generate_moves(Board& b) {
         }
     }
     MoveList moves{};
-    uint64_t attackers = attackers_to(~side, king_sq, all_occ_sq, b);
+    uint64_t attackers = b.attackers_to(king_sq);
     num_attackers = __popcnt64(attackers);
     in_check = num_attackers > 0;
     uint64_t valid_sq = (Type == EVASIONS) ? ray_between(get_lsb(attackers), king_sq) :
@@ -135,7 +135,7 @@ void addPawnMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
                 modified_occ ^= (1ULL << from_sq);
                 modified_occ ^= (1ULL << captured_pawn_sq);
                 modified_occ |= (1ULL << to_sq);
-                if (!has_attackers(~side, king_sq, modified_occ, 1ULL << captured_pawn_sq, b)) {
+                if (!b.attackers_to(king_sq, 1ULL << captured_pawn_sq)) {
                     moves.add(Move(from_sq, to_sq, ENPASSANT));
                 }
             }
@@ -198,20 +198,6 @@ void addKnightMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
     }
 }
 
-uint64_t getBishopAttacks(uint64_t occ, int sq) {
-    occ     &= m_bishop_tbl[sq].mask;
-    occ     *= m_bishop_tbl[sq].magic;
-    occ     >>= m_bishop_tbl[sq].shift;
-    return m_bishop_tbl[sq].ptr[occ];
-}
-
-uint64_t getRookAttacks(uint64_t occ, int sq) {
-    occ     &= m_rook_tbl[sq].mask;
-    occ     *= m_rook_tbl[sq].magic;
-    occ     >>= m_rook_tbl[sq].shift;
-    return m_rook_tbl[sq].ptr[occ];
-}
-
 void addSlidingMoves(Board& b, MoveList& moves, uint64_t valid_sq) {
     uint64_t bishops = b.getBishopBitboard(side);
     uint64_t rooks = b.getRookBitboard(side);
@@ -263,7 +249,7 @@ void addKingMoves(Board& b, MoveList& moves) {
 
     while(king_sq) {
         uint8_t target_sq = pop_lsb(&king_sq);
-        if (attackers_to(~side, target_sq, all_occ_sq ^ (1ULL << sq), b)) continue;
+        if (b.attackers_to(target_sq, 0ULL, all_occ_sq ^ (1ULL << sq))) continue;
         moves.add(Move(sq, target_sq, 0));
     }
     if (in_check) return;
@@ -274,7 +260,7 @@ void addKingMoves(Board& b, MoveList& moves) {
             bool can_castle = true;
             while(cleared_sq) {
                 uint8_t clear_sq = pop_lsb(&cleared_sq);
-                can_castle = !has_attackers(~side, clear_sq, all_occ_sq, 0ULL, b);
+                can_castle = !b.attackers_to(clear_sq);
                 if (!can_castle) break;
             }
             if (can_castle) {
@@ -282,22 +268,6 @@ void addKingMoves(Board& b, MoveList& moves) {
             }
         }
     }
-}
-
-uint64_t attackers_to(Colour side, uint8_t sq, uint64_t occ, Board& b) { // attacker colour
-    return  (pawn_attacks[~side][sq] & b.getPawnBitboard(side)) |
-            (knight_moves[sq] & b.getKnightBitboard(side)) |
-            (getBishopAttacks(occ, sq) & (b.getBishopBitboard(side) | b.getQueenBitboard(side))) | 
-            (getRookAttacks(occ, sq) & (b.getRookBitboard(side) | b.getQueenBitboard(side))) | 
-            (king_moves[sq] & b.getKingBitboard(side));
-}
-
-uint64_t has_attackers(Colour side, uint8_t sq, uint64_t occ, uint64_t ignore_sq, Board& b) { // attacker colour
-    return  ((pawn_attacks[~side][sq] & b.getPawnBitboard(side) & ~ignore_sq) ||
-              (knight_moves[sq] & b.getKnightBitboard(side) & ~ignore_sq) ||
-              (getBishopAttacks(occ, sq) & (b.getBishopBitboard(side) | b.getQueenBitboard(side)) & ~ignore_sq) ||
-              (getRookAttacks(occ, sq) & (b.getRookBitboard(side) | b.getQueenBitboard(side)) & ~ignore_sq) ||
-             (king_moves[sq] & b.getKingBitboard(side)));
 }
 
 // return a ray that is always inclusive of sq_1 and ends 1 square before sq_2

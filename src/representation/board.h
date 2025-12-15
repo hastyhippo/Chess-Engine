@@ -62,7 +62,12 @@ class Board {
         uint8_t getHalfMoveClock();
         void setBoardInfo(uint16_t new_info);
         uint16_t getBoardInfo();
+        bool inCheck();
 
+        uint64_t get_occupancy();
+        uint64_t attackers_to(uint8_t sq);
+        uint64_t attackers_to(uint8_t sq, uint64_t ignore_sq);
+        uint64_t attackers_to(uint8_t sq, uint64_t ignore_sq, uint64_t occ);
         //Updating game state
         void add_piece(uint8_t piece, uint8_t sq);
         void move_piece(uint8_t from_sq, uint8_t to_sq);

@@ -1,5 +1,6 @@
 #include "search.h"
 
+constexpr int CHECKMATE = 99999999;
 // template<SearchType Type>
 int negamax(Board &b, Colour side, int depth) {
     if (depth == 0) {
@@ -8,7 +9,10 @@ int negamax(Board &b, Colour side, int depth) {
     }
     
     MoveList possible_moves = generate_moves<ALL_MOVES>(b);
-    
+    if (possible_moves.size == 0) {
+
+    }
+
     int value = INT32_MIN;
     for (Move m : possible_moves) {
         b.make_move(m);
@@ -28,7 +32,6 @@ int negamax(Board &b, Colour side, int depth) {
 
 Move get_best_move(Board &b, Colour side, int depth) {
     MoveList possible_moves = generate_moves<ALL_MOVES>(b);
-    
     if (possible_moves.size == 0) {
         return Move();
     }
@@ -41,6 +44,8 @@ Move get_best_move(Board &b, Colour side, int depth) {
         Colour opponent_side = (side == WHITE) ? BLACK : WHITE;
         int value = -negamax<NODE>(b, opponent_side, depth - 1);
         b.unmake_move(m);
+
+        cout << "Move: " << m.getName() << " | " << value << "\n";
         
         if (value > best_value) {
             best_value = value;

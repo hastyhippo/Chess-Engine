@@ -151,3 +151,17 @@ uint64_t bishop_masks[64];
 uint64_t ray_between_table[64][64];
 uint64_t ray_through[64][64];
 
+
+uint64_t get_bishop_attacks(uint64_t occ, int sq) {
+    occ     &= m_bishop_tbl[sq].mask;
+    occ     *= m_bishop_tbl[sq].magic;
+    occ     >>= m_bishop_tbl[sq].shift;
+    return m_bishop_tbl[sq].ptr[occ];
+}
+
+uint64_t get_rook_attacks(uint64_t occ, int sq) {
+    occ     &= m_rook_tbl[sq].mask;
+    occ     *= m_rook_tbl[sq].magic;
+    occ     >>= m_rook_tbl[sq].shift;
+    return m_rook_tbl[sq].ptr[occ];
+}

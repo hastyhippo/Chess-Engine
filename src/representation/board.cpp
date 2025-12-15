@@ -312,3 +312,48 @@ void Board::printBoard() {
     }
     cout << "----------------------\n";
 }
+
+uint64_t Board::get_occupancy() {
+    return colour_bb[0] | colour_bb[1];
+}
+
+uint64_t Board::attackers_to(uint8_t sq) { // attacker colour
+    uint64_t occ = get_occupancy();
+    Colour side = getWhiteTurn() ? BLACK: WHITE;
+    return  (pawn_attacks[~side][sq] & getPawnBitboard(side)) |
+            (knight_moves[sq] & getKnightBitboard(side)) |
+            (get_bishop_attacks(occ, sq) & (getBishopBitboard(side) | getQueenBitboard(side))) | 
+            (get_rook_attacks(occ, sq) & (getRookBitboard(side) | getQueenBitboard(side))) | 
+            (king_moves[sq] & getKingBitboard(side));
+}
+
+uint64_t Board::attackers_to(uint8_t sq, uint64_t ignore_sq) { // attacker colour
+    uint64_t occ = get_occupancy();
+    Colour side = getWhiteTurn() ? BLACK : WHITE;
+    return  ((pawn_attacks[~side][sq] & getPawnBitboard(side) & ~ignore_sq) ||
+              (knight_moves[sq] & getKnightBitboard(side) & ~ignore_sq) ||
+              (get_bishop_attacks(occ, sq) & (getBishopBitboard(side) | getQueenBitboard(side)) & ~ignore_sq) ||
+              (get_rook_attacks(occ, sq) & (getRookBitboard(side) | getQueenBitboard(side)) & ~ignore_sq) ||
+             (king_moves[sq] & getKingBitboard(side)));
+}
+
+uint64_t Board::attackers_to(uint8_t sq, uint64_t ignore_sq, uint64_t occ) { // attacker colour
+    Colour side = getWhiteTurn() ? BLACK : WHITE;
+    return  ((pawn_attacks[~side][sq] & getPawnBitboard(side) & ~ignore_sq) ||
+              (knight_moves[sq] & getKnightBitboard(side) & ~ignore_sq) ||
+              (get_bishop_attacks(occ, sq) & (getBishopBitboard(side) | getQueenBitboard(side)) & ~ignore_sq) ||
+              (get_rook_attacks(occ, sq) & (getRookBitboard(side) | getQueenBitboard(side)) & ~ignore_sq) ||
+             (king_moves[sq] & getKingBitboard(side)));
+}
+
+bool Board::inCheck() {
+    Colour side = getWhiteTurn() ? WHITE : BLACK;
+    uint64_t king_bb = getKingBitboard(side);
+    if (king_bb == 0) {
+        return false;
+    }
+    
+    uint8_t king_sq = _tzcnt_u64(king_bb);
+    
+    return attackers_to(king_sq) > 0;
+}
