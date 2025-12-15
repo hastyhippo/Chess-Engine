@@ -6,6 +6,7 @@
 #include "misc/defines.h"
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "./test/doctest.h"
+#include "./uci/uci.h"
 
 using namespace std;
 
@@ -29,6 +30,14 @@ int main(int argc, char** argv) {
                 return res;
             }
             return 0;
+        }
+    }
+
+    string input = "";
+    while (getline(cin, input)) {
+        if (input == "uci") {
+           UCI uci;
+           cout << "uciok\n";
         }
     }
     // Board b("N6N/4Bb2/2N3b1/3NB3/8/8/8/N1k2K1N w - - 0 1");

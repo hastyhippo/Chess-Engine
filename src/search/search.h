@@ -1,4 +1,9 @@
-#include "defines.h"
-#include "../movegen/movegen.h"
+#pragma once
 
-double minimax(Board &b, Colour side, int depth);
+#include "../misc/defines.h"
+#include "../movegen/movegen.h"
+#include "../search/eval.h"
+
+template<SearchType Type>
+int negamax(Board &b, Colour side, int depth);
+Move get_best_move(Board &b, Colour side, int depth);

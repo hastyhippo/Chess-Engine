@@ -70,11 +70,11 @@ uint64_t divided_perft(Board &b, int depth, int print_depth, vector<string>& mov
     MoveList move_list = generate_moves<ALL_MOVES>(b);
 
     for (Move m : move_list) {
-        b.makeMove(m);
+        b.make_move(m);
         moves.push_back(m.getName());
         n_moves += divided_perft(b, depth - 1, print_depth - 1, moves);
         moves.pop_back();
-        b.unmakeMove(m);
+        b.unmake_move(m);
     }
     if(print_depth == 0) {
         string moves_list = "";
@@ -95,11 +95,11 @@ uint64_t divided_perft(Board &b, int depth, vector<string>& moves) {
     MoveList move_list = generate_moves<ALL_MOVES>(b);
 
     for (Move m : move_list) {
-        b.makeMove(m);
+        b.make_move(m);
         moves.push_back(m.getName());
         n_moves += divided_perft(b, depth - 1, moves);
         moves.pop_back();
-        b.unmakeMove(m);
+        b.unmake_move(m);
     }
 
     string moves_list = "";
@@ -123,9 +123,9 @@ uint64_t perft(Board &b, int depth) {
     MoveList move_list = generate_moves<ALL_MOVES>(b);
 
     for (Move m : move_list) {
-        b.makeMove(m);
+        b.make_move(m);
         n_moves += perft(b, depth - 1);
-        b.unmakeMove(m);
+        b.unmake_move(m);
     }
     return n_moves;
 }

@@ -23,7 +23,6 @@ struct SMagic {
     int shift;
 };
 
-enum GenType {CAPTURES, EVASIONS, QUIET, ALL_MOVES, PINNED};
 
 vector<string>splitString(const string& input, const char delimiter);
 void printBB(uint64_t bb);
@@ -268,3 +267,5 @@ inline uint8_t get_lsb(uint64_t& b) {
 }
 
 constexpr Colour operator~(Colour c) { return Colour(c ^ 1); }
+
+// SOLVER
