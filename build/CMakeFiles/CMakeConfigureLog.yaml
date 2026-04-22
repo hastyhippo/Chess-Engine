@@ -77,7 +77,7 @@ events:
       The output was:
       0
       MSBuild version 17.11.2+c078802d4 for .NET Framework
-      Build started 30/11/2025 1:50:13 AM.
+      Build started 15/12/2025 8:23:59 PM.
       
       Project "C:\\Users\\natha\\OneDrive\\Documents\\GitHub\\ChessEngine\\build\\CMakeFiles\\4.2.0-rc1\\CompilerIdCXX\\CompilerIdCXX.vcxproj" on node 1 (default targets).
       PrepareForBuild:
@@ -106,7 +106,7 @@ events:
           0 Warning(s)
           0 Error(s)
       
-      Time Elapsed 00:00:01.18
+      Time Elapsed 00:00:01.00
       
       
       Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CompilerIdCXX.exe"
@@ -890,8 +890,8 @@ events:
     checks:
       - "Detecting CXX compiler ABI info"
     directories:
-      source: "C:/Users/natha/OneDrive/Documents/GitHub/ChessEngine/build/CMakeFiles/CMakeScratch/TryCompile-3pb1bx"
-      binary: "C:/Users/natha/OneDrive/Documents/GitHub/ChessEngine/build/CMakeFiles/CMakeScratch/TryCompile-3pb1bx"
+      source: "C:/Users/natha/OneDrive/Documents/GitHub/ChessEngine/build/CMakeFiles/CMakeScratch/TryCompile-ac27qc"
+      binary: "C:/Users/natha/OneDrive/Documents/GitHub/ChessEngine/build/CMakeFiles/CMakeScratch/TryCompile-ac27qc"
     cmakeVariables:
       CMAKE_CXX_FLAGS: "/DWIN32 /D_WINDOWS /GR /EHsc"
       CMAKE_CXX_FLAGS_DEBUG: "/Zi /Ob0 /Od /RTC1"
@@ -901,39 +901,39 @@ events:
       variable: "CMAKE_CXX_ABI_COMPILED"
       cached: true
       stdout: |
-        Change Dir: 'C:/Users/natha/OneDrive/Documents/GitHub/ChessEngine/build/CMakeFiles/CMakeScratch/TryCompile-3pb1bx'
+        Change Dir: 'C:/Users/natha/OneDrive/Documents/GitHub/ChessEngine/build/CMakeFiles/CMakeScratch/TryCompile-ac27qc'
         
-        Run Build Command(s): "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_f1cdd.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
+        Run Build Command(s): "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_60cdf.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
         MSBuild version 17.11.2+c078802d4 for .NET Framework
-        Build started 30/11/2025 1:50:16 AM.
+        Build started 15/12/2025 8:24:00 PM.
         
-        Project "C:\\Users\\natha\\OneDrive\\Documents\\GitHub\\ChessEngine\\build\\CMakeFiles\\CMakeScratch\\TryCompile-3pb1bx\\cmTC_f1cdd.vcxproj" on node 1 (default targets).
+        Project "C:\\Users\\natha\\OneDrive\\Documents\\GitHub\\ChessEngine\\build\\CMakeFiles\\CMakeScratch\\TryCompile-ac27qc\\cmTC_60cdf.vcxproj" on node 1 (default targets).
         PrepareForBuild:
           Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details.
-          Creating directory "C:\\Users\\natha\\OneDrive\\Documents\\GitHub\\ChessEngine\\build\\CMakeFiles\\CMakeScratch\\TryCompile-3pb1bx\\Debug\\".
-          Creating directory "cmTC_f1cdd.dir\\Debug\\cmTC_f1cdd.tlog\\".
+          Creating directory "C:\\Users\\natha\\OneDrive\\Documents\\GitHub\\ChessEngine\\build\\CMakeFiles\\CMakeScratch\\TryCompile-ac27qc\\Debug\\".
+          Creating directory "cmTC_60cdf.dir\\Debug\\cmTC_60cdf.tlog\\".
         InitializeBuildStatus:
-          Creating "cmTC_f1cdd.dir\\Debug\\cmTC_f1cdd.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
-          Touching "cmTC_f1cdd.dir\\Debug\\cmTC_f1cdd.tlog\\unsuccessfulbuild".
+          Creating "cmTC_60cdf.dir\\Debug\\cmTC_60cdf.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
+          Touching "cmTC_60cdf.dir\\Debug\\cmTC_60cdf.tlog\\unsuccessfulbuild".
         ClCompile:
-          C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.41.34120\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /EHsc /RTC1 /MDd /GR /Fo"cmTC_f1cdd.dir\\Debug\\\\" /Fd"C:\\Users\\natha\\OneDrive\\Documents\\GitHub\\ChessEngine\\build\\CMakeFiles\\CMakeScratch\\TryCompile-3pb1bx\\cmTC_f1cdd.dir\\Debug\\vc143.pdb" /external:W1 /TP /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-4.2\\Modules\\CMakeCXXCompilerABI.cpp"
+          C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.41.34120\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /EHsc /RTC1 /MDd /GR /Fo"cmTC_60cdf.dir\\Debug\\\\" /Fd"C:\\Users\\natha\\OneDrive\\Documents\\GitHub\\ChessEngine\\build\\CMakeFiles\\CMakeScratch\\TryCompile-ac27qc\\cmTC_60cdf.dir\\Debug\\vc143.pdb" /external:W1 /TP /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-4.2\\Modules\\CMakeCXXCompilerABI.cpp"
           Microsoft (R) C/C++ Optimizing Compiler Version 19.41.34120 for x64
           Copyright (C) Microsoft Corporation.  All rights reserved.
-          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /EHsc /RTC1 /MDd /GR /Fo"cmTC_f1cdd.dir\\Debug\\\\" /Fd"C:\\Users\\natha\\OneDrive\\Documents\\GitHub\\ChessEngine\\build\\CMakeFiles\\CMakeScratch\\TryCompile-3pb1bx\\cmTC_f1cdd.dir\\Debug\\vc143.pdb" /external:W1 /TP /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-4.2\\Modules\\CMakeCXXCompilerABI.cpp"
+          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /EHsc /RTC1 /MDd /GR /Fo"cmTC_60cdf.dir\\Debug\\\\" /Fd"C:\\Users\\natha\\OneDrive\\Documents\\GitHub\\ChessEngine\\build\\CMakeFiles\\CMakeScratch\\TryCompile-ac27qc\\cmTC_60cdf.dir\\Debug\\vc143.pdb" /external:W1 /TP /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-4.2\\Modules\\CMakeCXXCompilerABI.cpp"
           CMakeCXXCompilerABI.cpp
         Link:
-          C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.41.34120\\bin\\HostX64\\x64\\link.exe /OUT:"C:\\Users\\natha\\OneDrive\\Documents\\GitHub\\ChessEngine\\build\\CMakeFiles\\CMakeScratch\\TryCompile-3pb1bx\\Debug\\cmTC_f1cdd.exe" /INCREMENTAL /ILK:"cmTC_f1cdd.dir\\Debug\\cmTC_f1cdd.ilk" /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:/Users/natha/OneDrive/Documents/GitHub/ChessEngine/build/CMakeFiles/CMakeScratch/TryCompile-3pb1bx/Debug/cmTC_f1cdd.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /IMPLIB:"C:/Users/natha/OneDrive/Documents/GitHub/ChessEngine/build/CMakeFiles/CMakeScratch/TryCompile-3pb1bx/Debug/cmTC_f1cdd.lib" /MACHINE:X64  /machine:x64 cmTC_f1cdd.dir\\Debug\\CMakeCXXCompilerABI.obj
-          cmTC_f1cdd.vcxproj -> C:\\Users\\natha\\OneDrive\\Documents\\GitHub\\ChessEngine\\build\\CMakeFiles\\CMakeScratch\\TryCompile-3pb1bx\\Debug\\cmTC_f1cdd.exe
+          C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.41.34120\\bin\\HostX64\\x64\\link.exe /OUT:"C:\\Users\\natha\\OneDrive\\Documents\\GitHub\\ChessEngine\\build\\CMakeFiles\\CMakeScratch\\TryCompile-ac27qc\\Debug\\cmTC_60cdf.exe" /INCREMENTAL /ILK:"cmTC_60cdf.dir\\Debug\\cmTC_60cdf.ilk" /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:/Users/natha/OneDrive/Documents/GitHub/ChessEngine/build/CMakeFiles/CMakeScratch/TryCompile-ac27qc/Debug/cmTC_60cdf.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /IMPLIB:"C:/Users/natha/OneDrive/Documents/GitHub/ChessEngine/build/CMakeFiles/CMakeScratch/TryCompile-ac27qc/Debug/cmTC_60cdf.lib" /MACHINE:X64  /machine:x64 cmTC_60cdf.dir\\Debug\\CMakeCXXCompilerABI.obj
+          cmTC_60cdf.vcxproj -> C:\\Users\\natha\\OneDrive\\Documents\\GitHub\\ChessEngine\\build\\CMakeFiles\\CMakeScratch\\TryCompile-ac27qc\\Debug\\cmTC_60cdf.exe
         FinalizeBuildStatus:
-          Deleting file "cmTC_f1cdd.dir\\Debug\\cmTC_f1cdd.tlog\\unsuccessfulbuild".
-          Touching "cmTC_f1cdd.dir\\Debug\\cmTC_f1cdd.tlog\\cmTC_f1cdd.lastbuildstate".
-        Done Building Project "C:\\Users\\natha\\OneDrive\\Documents\\GitHub\\ChessEngine\\build\\CMakeFiles\\CMakeScratch\\TryCompile-3pb1bx\\cmTC_f1cdd.vcxproj" (default targets).
+          Deleting file "cmTC_60cdf.dir\\Debug\\cmTC_60cdf.tlog\\unsuccessfulbuild".
+          Touching "cmTC_60cdf.dir\\Debug\\cmTC_60cdf.tlog\\cmTC_60cdf.lastbuildstate".
+        Done Building Project "C:\\Users\\natha\\OneDrive\\Documents\\GitHub\\ChessEngine\\build\\CMakeFiles\\CMakeScratch\\TryCompile-ac27qc\\cmTC_60cdf.vcxproj" (default targets).
         
         Build succeeded.
             0 Warning(s)
             0 Error(s)
         
-        Time Elapsed 00:00:00.67
+        Time Elapsed 00:00:00.84
         
       exitCode: 0
   -

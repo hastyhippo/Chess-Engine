@@ -31,6 +31,9 @@
     <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\test\test_perft.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\test\test_search.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="C:\Users\natha\OneDrive\Documents\GitHub\ChessEngine\src\uci\uci.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
