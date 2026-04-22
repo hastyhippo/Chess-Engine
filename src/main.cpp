@@ -18,16 +18,60 @@ void timedPerft2(Board &b, int depth) {
     double nps = nodes/seconds;
     cout << "perft : " << depth <<" | " << nodes << " nodes in " << seconds << " seconds | " << nps/1e6 << "m nodes/sec\n"; 
 }
+
 int main(int argc, char** argv) {
     init();
     
     for (int i = 1; i < argc; i++) {
         if (string(argv[i]) == "-t") {
             doctest::Context context;
-            context.applyCommandLine(argc, argv);
+            // context.applyCommandLine(argc, argv);
+            context.setOption("test-suite", "movegen speed");
             int res = context.run();
             if (context.shouldExit()) {
                 return res;
+            }
+            return 0;
+        } else if (string(argv[i]) == "-s") {
+            doctest::Context context;
+            // context.applyCommandLine(argc, argv);
+            context.setOption("test-suite", "search speed");
+            int res = context.run();
+            if (context.shouldExit()) {
+                return res;
+            }
+            return 0;
+        } else if (string(argv[i]) == "-c") {
+            doctest::Context context;
+            context.setOption("no-output-redirect", true);
+            context.setOption("test-suite", "perft correctness");
+            int res = context.run();
+            if (context.shouldExit()) {
+                return res;
+            }
+            return 0;
+        } else if (string(argv[i]) == "-p") {
+            string line;
+            while (getline(cin, line)) {
+                if (line.empty()) continue;
+                istringstream ss(line);
+                string fen, token;
+                int depth = 5;
+                // last token is depth if it's a plain integer
+                vector<string> tokens;
+                while (ss >> token) tokens.push_back(token);
+                if (!tokens.empty()) {
+                    try {
+                        depth = stoi(tokens.back());
+                        tokens.pop_back();
+                    } catch (...) {}
+                }
+                for (int j = 0; j < tokens.size(); j++)
+                    fen += (j ? " " : "") + tokens[j];
+                Board b(fen);
+                b.printBoard();
+                Move best = get_best_move(b, depth);
+                cout << "bestmove " << best.getName() << "\n";
             }
             return 0;
         }
@@ -57,58 +101,21 @@ int main(int argc, char** argv) {
     //     cout << a.getName() << " \n";
     // }
     // assert(moves2.size() == moves.size());
-    Board b("r3k2r/pppbqppp/2np1n2/2b1p1B1/2B1P3/2NP1N2/PPPQ1PPP/R3K2R w KQkq - 0 1");
-    timedPerft2(b, 5);
+    // Board b("r3k2r/pppbqppp/2np1n2/2b1p1B1/2B1P3/2NP1N2/PPPQ1PPP/R3K2R w KQkq - 0 1");
+    // timedPerft2(b, 5);
     while(true) {
-        
         string s;
         getline(cin, s);
         Board b(s);
         int depth;
-        // timedPerft2(b, 5);
-        
-        MoveList moves = generate_moves<ALL_MOVES>(b);
-        for (Move a : moves) {
-            cout << a.getName() << "\n";
-            b.make_move(a);
-            // b.printBoard();
-            b.unmake_move(a);
-        }
         cin >> depth;
-        vector<string> v;
-        divided_perft(b, depth, 1, v);
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    }
-    // Board b("k2r4/8/7b/8/4p1n1/8/4K3/1q6 w - - 0 1");
-    // // Board b("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
 
-    // vector<Move> moves = generateMoves<ALL_MOVES>(b);
-    // cout << "STARTING POSITION\n";
-    // for (Move a : moves) {
-    //     cout << "MOVE: " << a.getName() << "\n";
-    //     b.makeMove(a);
-    //     b.printBoard();
-    //     b.unmakeMove();
-    // }
-    vector<string> v;
-    // divided_perft(b, 3,  1,   v);
-    Board b2("r3k2r/p1pNqpb1/bn2pnp1/3P4/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1");
-    MoveList moves = generate_moves<ALL_MOVES>(b2);
-    // b2.printBoard();
-    // cout << "STARTING POSITION\n";
-    cout <<  moves.size << "\n";
-    for (Move a : moves) {
-        cout  << a.getName() << "\n";
-        // b2.makeMove(a);
-        // b2.printBoard();
-        // b2.unmakeMove();
+        vector<string> v;
+        uint64_t total = divided_perft(b, depth, 1, v);
+        cout << "\nNodes searched: " << total << "\n";
     }
 
-    divided_perft(b2, 1, 0, v);
-
-    // for (int i = 3; i >= 1; i--) {
-    //     divided_perft()
-    // }
 }
 
 /*

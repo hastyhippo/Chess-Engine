@@ -3,18 +3,9 @@
 #include "../misc/defines.h"
 #include "../initialisation/init.h"
 #include "../movegen/movegen.h"
-#include <chrono>
 
-void timedPerft(Board &b, int depth) {
-    auto start = chrono::high_resolution_clock::now();
-    uint64_t nodes = perft(b, depth);
-    auto end = chrono::high_resolution_clock::now();
-    double seconds = chrono::duration<double>(end - start).count();
-    double nps = nodes/seconds;
-    cout << "perft : " << depth <<" | " << nodes << " nodes in " << seconds << " seconds | " << nps/1e6 << "m nodes/sec\n"; 
-}
 
-DOCTEST_TEST_SUITE("perft") { // Sourced from https://www.chessprogramming.org/Perft_Results
+DOCTEST_TEST_SUITE("perft correctness") { // Sourced from https://www.chessprogramming.org/Perft_Results
     TEST_CASE("Starting position - perft(1-6)") {
         Board b("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
         CHECK(perft(b, 1) == 20);
@@ -22,7 +13,7 @@ DOCTEST_TEST_SUITE("perft") { // Sourced from https://www.chessprogramming.org/P
         CHECK(perft(b, 3) == 8902);
         CHECK(perft(b, 4) == 197281);
         CHECK(perft(b, 5) == 4865609);
-        // CHECK(perft(b, 6) == 119060324);
+        CHECK(perft(b, 6) == 119060324);
     }
 
     TEST_CASE("Kiwipete - perft(1-5)") { 
@@ -31,7 +22,7 @@ DOCTEST_TEST_SUITE("perft") { // Sourced from https://www.chessprogramming.org/P
         CHECK(perft(b, 2) == 2039);
         CHECK(perft(b, 3) == 97862);
         CHECK(perft(b, 4) == 4085603);
-        // CHECK(perft(b, 5) == 193690690);
+        CHECK(perft(b, 5) == 193690690);
     }
 
     TEST_CASE("perft Position 3 - perft(1-7)") {
@@ -42,7 +33,7 @@ DOCTEST_TEST_SUITE("perft") { // Sourced from https://www.chessprogramming.org/P
         CHECK(perft(b, 4) == 43238);
         CHECK(perft(b, 5) == 674624);
         CHECK(perft(b, 6) == 11030083);
-        // CHECK(perft(b, 7) == 178633661);
+        CHECK(perft(b, 7) == 178633661);
     }
 
     TEST_CASE("TalkChess Position - perft(1-5)") {
@@ -51,7 +42,7 @@ DOCTEST_TEST_SUITE("perft") { // Sourced from https://www.chessprogramming.org/P
         CHECK(perft(b, 2) == 1486);
         CHECK(perft(b, 3) == 62379);
         CHECK(perft(b, 4) == 2103487);
-        // CHECK(perft(b, 5) == 89941194);
+        CHECK(perft(b, 5) == 89941194);
     }
 
     TEST_CASE("Position 4 - perft(1-5)") {
@@ -60,7 +51,7 @@ DOCTEST_TEST_SUITE("perft") { // Sourced from https://www.chessprogramming.org/P
         CHECK(perft(b, 2) == 2079);
         CHECK(perft(b, 3) == 89890);
         CHECK(perft(b, 4) == 3894594);
-        // CHECK(perft(b, 5) == 164075551);
+        CHECK(perft(b, 5) == 164075551);
     }
 
     TEST_CASE("Harder Positional Tests") { // Sourced from: https://www.chessprogramming.net/perfect-perft/
@@ -121,10 +112,21 @@ DOCTEST_TEST_SUITE("perft") { // Sourced from https://www.chessprogramming.org/P
         CHECK(perft(b14, 4) == 23527);
     }
 
-    TEST_CASE("perft Timed") {
-        Board b("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-        for (int i = 1; i <= 5; i++) {
-            timedPerft(b, i);
-        }
+    TEST_CASE("Pawn moves flipped") {
+        Board b("b1n5/PP4B1/1P4P1/3Pp3/3P4/P3bpqp/PP3PPP/1K5k w - e6 0 1");
+        MoveList moves = generate_moves<ALL_MOVES>(b);
+        Board b2("1k5K/pp3ppp/p3BPQP/3p4/3pP3/1p4p1/pp4b1/B1N5 b - e3 0 1");
+        MoveList moves2 = generate_moves<ALL_MOVES>(b2);
+        CHECK(moves2.size == moves.size);    
+    }
+
+    TEST_CASE("Perft B/W are same") {
+        Board w("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        Board b("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1");
+        CHECK(perft(b, 1) == perft(w, 1));
+        CHECK(perft(b, 2) == perft(w, 2));
+        CHECK(perft(b, 3) == perft(w, 3));
+        CHECK(perft(b, 4) == perft(w, 4));
+        CHECK(perft(b, 5) == perft(w, 5));
     }
 }

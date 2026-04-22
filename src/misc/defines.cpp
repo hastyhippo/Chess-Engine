@@ -1,4 +1,5 @@
 #include "defines.h"
+#include <future>
 #include "../movegen/movegen.h"
 
 unordered_map<string, uint64_t> name_to_bit = {
@@ -63,71 +64,68 @@ void printBB(uint64_t bb) {
 }
 
 uint64_t divided_perft(Board &b, int depth, int print_depth, vector<string>& moves) {
-    if (depth == 0) {
-        return (uint64_t)1;
-    }
-    uint64_t n_moves = 0;
     MoveList move_list = generate_moves<ALL_MOVES>(b);
+    if (depth == 1) {
+        if (print_depth <= 1) {
+            string prefix;
+            for (auto& mv : moves) prefix += mv;
+            cout << prefix << " | nodes: " << move_list.size << "\n";
+        }
+        return move_list.size;
+    }
 
+    uint64_t total = 0;
     for (Move m : move_list) {
         b.make_move(m);
         moves.push_back(m.getName());
-        n_moves += divided_perft(b, depth - 1, print_depth - 1, moves);
+        uint64_t sub = divided_perft(b, depth - 1, print_depth - 1, moves);
+        total += sub;
+        if (print_depth == 1)
+            cout << m.getName() << ": " << sub << "\n";
         moves.pop_back();
         b.unmake_move(m);
     }
-    if(print_depth == 0) {
-        string moves_list = "";
-        for (auto a : moves) {
-            moves_list += a;
-        }   
-        cout << moves_list << " | nodes: " << n_moves << "\n";
-    }
-    return n_moves;
+    return total;
 }
 
 uint64_t divided_perft(Board &b, int depth, vector<string>& moves) {
-    if (depth == 0) {    
-        cout << moves[moves.size()-1] << " ";
-        return (uint64_t)1;
-    }
-    uint64_t n_moves = 0;
-    MoveList move_list = generate_moves<ALL_MOVES>(b);
-
-    for (Move m : move_list) {
-        b.make_move(m);
-        moves.push_back(m.getName());
-        n_moves += divided_perft(b, depth - 1, moves);
-        moves.pop_back();
-        b.unmake_move(m);
-    }
-
-    string moves_list = "";
-    for (auto a : moves) {
-        moves_list += a;
-    }  
-    for (int i = 0; i < moves.size(); i++) {
-        cout << "  ";
-    } 
-    cout << "\n" << moves_list << " | nodes: " << n_moves << "\n";
-
-    return n_moves;
+    vector<string> dummy;
+    return divided_perft(b, depth, 1, dummy);
 }
 
 uint64_t perft(Board &b, int depth) {
-    if (depth == 0) {
-        return (uint64_t)1;
-    }
-    
-    uint64_t n_moves = 0;
     MoveList move_list = generate_moves<ALL_MOVES>(b);
+    if (depth == 1) return move_list.size;
 
+    uint64_t n_moves = 0;
     for (Move m : move_list) {
         b.make_move(m);
         n_moves += perft(b, depth - 1);
         b.unmake_move(m);
     }
     return n_moves;
+}
+
+uint64_t perft_mt(Board &b, int depth) {
+    MoveList move_list = generate_moves<ALL_MOVES>(b);
+    if (depth == 1) return move_list.size;
+
+    // Each thread gets its own board copy after the root move is made
+    vector<future<uint64_t>> futures;
+    futures.reserve(move_list.size);
+
+    for (Move m : move_list) {
+        b.make_move(m);
+        Board b_copy = b;
+        b.unmake_move(m);
+        futures.push_back(async(launch::async, [b_copy, depth]() mutable {
+            return perft(b_copy, depth - 1);
+        }));
+    }
+
+    uint64_t total = 0;
+    for (auto &f : futures) total += f.get();
+    return total;
 }
 
 uint64_t shift(uint64_t bb, int offset){

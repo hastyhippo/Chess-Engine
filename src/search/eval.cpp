@@ -11,6 +11,7 @@ static const int PIECE_VALUES[] = {
     0      // KING (not used in material evaluation)
 };
 
+// returns evaluation from the players perspective
 int evaluate(Board &b) {
     int score = 0;
     
@@ -28,5 +29,6 @@ int evaluate(Board &b) {
     score -= _mm_popcnt_u64(b.getRookBitboard(BLACK)) * PIECE_VALUES[ROOK];
     score -= _mm_popcnt_u64(b.getQueenBitboard(BLACK)) * PIECE_VALUES[QUEEN];
     
-    return score;
+    // if black, reverse the piece
+    return score * (b.getWhiteTurn() ? 1 : -1);
 }

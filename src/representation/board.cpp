@@ -38,13 +38,13 @@ Board::Board(string FEN) {
 
     vector<string> fen_split = splitString(FEN, ' ');
     if (fen_split.size() != 6) {
-        cerr << "FEN is not formatted correctly, with " << fen_split.size() << " fields\n";
+        cout << "FEN is not formatted correctly, with " << fen_split.size() << " fields\n";
     }
 
     // Building the board
     vector<string> row_split = splitString(fen_split[0], '/');
     if (row_split.size() != N_ROWS) {
-        cerr << "FEN Rows is not formatted correctly, with " << row_split.size() << " fields for rows\n";
+        cout << "FEN Rows is not formatted correctly, with " << row_split.size() << " fields for rows\n";
     }
 
     for (int i = 0; i < N_ROWS; i++) {
@@ -233,14 +233,13 @@ void Board::make_move(Move m) {
     new_board_info |= (board_info & HALFMOVES_BITMASK);
     board_info = new_board_info;
 
-    state_history.push_back(new_bs);
+    state_history[state_history_size++] = new_bs;
     this->move_number++;
     this->white_turn = !this->white_turn;
 }
 
 void Board::unmake_move(Move m) {
-    BoardState prev_state = state_history.back();
-    state_history.pop_back();
+    BoardState prev_state = state_history[--state_history_size];
 
     this->move_number--;
     this->white_turn = !this->white_turn;
@@ -334,13 +333,10 @@ uint64_t Board::attackers_to(uint8_t sq, uint64_t ignore_sq, uint64_t occ) { // 
              (king_moves[sq] & getKingBitboard(side)));
 }
 
-bool Board::inCheck() {
+bool Board::in_check() {
     Colour side = getWhiteTurn() ? WHITE : BLACK;
     uint64_t king_bb = getKingBitboard(side);
-    if (king_bb == 0) {
-        return false;
-    }
-    
+    assert(king_bb != 0);
     uint8_t king_sq = _tzcnt_u64(king_bb);
     
     return attackers_to(king_sq) > 0;

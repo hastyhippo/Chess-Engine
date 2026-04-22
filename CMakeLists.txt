@@ -25,7 +25,8 @@ endif()
 include_directories(src)
 
 # Find source files
-file(GLOB_RECURSE SOURCES "src/*.cpp")
+file(GLOB_RECURSE ENGINE_SOURCES CONFIGURE_DEPENDS "src/*.cpp")
+file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS "test/*.cpp")
 
 # Create executable
-add_executable(chess_engine ${SOURCES})
+add_executable(chess_engine ${ENGINE_SOURCES})

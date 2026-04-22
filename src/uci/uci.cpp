@@ -166,7 +166,7 @@ void UCI::go(string cmd) {
         return;
     }
     
-    Move best_move = get_best_move(board, board.getWhiteTurn() ? WHITE : BLACK, depth);
+    Move best_move = get_best_move(board, depth);
     cout << "bestmove " << move_to_uci(best_move) << "\n";
 }
 

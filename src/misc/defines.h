@@ -254,6 +254,7 @@ uint64_t divided_perft(Board &b, int depth, int print_depth, vector<string>& mov
 uint64_t divided_perft(Board &b, int depth, vector<string>& moves);
 
 uint64_t perft(Board &b, int depth);
+uint64_t perft_mt(Board &b, int depth);
 uint64_t shift(uint64_t bb, int offset);
 
 inline uint8_t pop_lsb(uint64_t* b) {

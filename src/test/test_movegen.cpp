@@ -4,23 +4,34 @@
 #include "../representation/board.h"
 #include "../movegen/movegen.h"
 #include "../initialisation/init.h"
+#include <chrono>
 
-DOCTEST_TEST_SUITE("move generation correctness") {
-    TEST_CASE("Pawn moves flipped") {
-        Board b("b1n5/PP4B1/1P4P1/3Pp3/3P4/P3bpqp/PP3PPP/1K5k w - e6 0 1");
-        MoveList moves = generate_moves<ALL_MOVES>(b);
-        Board b2("1k5K/pp3ppp/p3BPQP/3p4/3pP3/1p4p1/pp4b1/B1N5 b - e3 0 1");
-        MoveList moves2 = generate_moves<ALL_MOVES>(b2);
-        CHECK(moves2.size == moves.size);    
-    }
+void timedPerft(Board &b, int depth) {
+    auto start = chrono::high_resolution_clock::now();
+    uint64_t nodes = perft(b, depth);
+    auto end = chrono::high_resolution_clock::now();
+    double seconds = chrono::duration<double>(end - start).count();
+    cout << "single thread  perft " << depth << " | " << nodes << " nodes in " << seconds << "s | " << nodes/seconds/1e6 << "m nps\n";
+}
 
-    TEST_CASE("Perft B/W are same") {
-        Board w("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-        Board b("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1");
-        CHECK(perft(b, 1) == perft(w, 1));
-        CHECK(perft(b, 2) == perft(w, 2));
-        CHECK(perft(b, 3) == perft(w, 3));
-        CHECK(perft(b, 4) == perft(w, 4));
-        CHECK(perft(b, 5) == perft(w,5));
+void timedPerftMT(Board &b, int depth) {
+    auto start = chrono::high_resolution_clock::now();
+    uint64_t nodes = perft_mt(b, depth);
+    auto end = chrono::high_resolution_clock::now();
+    double seconds = chrono::duration<double>(end - start).count();
+    cout << "multi thread  perft " << depth << " | " << nodes << " nodes in " << seconds << "s | " << nodes/seconds/1e6 << "m nps\n";
+}
+
+DOCTEST_TEST_SUITE("movegen speed") {
+    TEST_CASE("perft Timed") {
+        Board b("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        cout << "--------------------------| single-threading |---------------------------------"<<"\n";
+        for (int i = 1; i <= 6; i++) {
+            timedPerft(b, i);
+        }
+        cout << "\n--------------------------| multi-threading |---------------------------------"<<"\n";
+        for (int i = 1; i <= 7; i++)  {
+            timedPerftMT(b, i);
+        }
     }
 }

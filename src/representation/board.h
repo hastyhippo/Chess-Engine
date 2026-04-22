@@ -35,7 +35,8 @@ class Board {
         uint64_t colour_bb[2];
         uint8_t pieces_arr[64];
         
-        vector<BoardState> state_history;
+        BoardState state_history[512];
+        int state_history_size = 0;
         
         void saveState();
         void restoreState(const BoardStateData& state);
@@ -62,7 +63,7 @@ class Board {
         uint8_t getHalfMoveClock();
         void setBoardInfo(uint16_t new_info);
         uint16_t getBoardInfo();
-        bool inCheck();
+        bool in_check();
 
         uint64_t get_occupancy();
         uint64_t attackers_to(uint8_t sq);
