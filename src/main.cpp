@@ -34,12 +34,10 @@ int main(int argc, char** argv) {
             return 0;
         } else if (string(argv[i]) == "-s") {
             doctest::Context context;
-            // context.applyCommandLine(argc, argv);
-            context.setOption("test-suite", "search speed");
+            context.setOption("no-output-redirect", true);
+            context.setOption("test-suite", "search correctness");
             int res = context.run();
-            if (context.shouldExit()) {
-                return res;
-            }
+            if (context.shouldExit()) return res;
             return 0;
         } else if (string(argv[i]) == "-c") {
             doctest::Context context;
@@ -77,44 +75,21 @@ int main(int argc, char** argv) {
         }
     }
 
-    string input = "";
-    while (getline(cin, input)) {
-        if (input == "uci") {
-           UCI uci;
-           cout << "uciok\n";
-           uci.loop();
-        } else {
-            break;
-        }
-    }
-    // Board b("N6N/4Bb2/2N3b1/3NB3/8/8/8/N1k2K1N w - - 0 1");
-    // vector<Move> moves = generateMoves(b);
-    // cout << "| ";
-    // for (Move a : moves) {
-    //     cout << a.getName() << " \n";
-    // }
+    UCI uci;
+    uci.loop();
 
-    // Board b2("n6n/4bB2/2n3B1/3nb3/8/8/8/n1k3Kn b - - 0 1");
-    // vector<Move> moves2 = generateMoves(b2);
-    // cout << "| ";
-    // for (Move a : moves2) {
-    //     cout << a.getName() << " \n";
-    // }
-    // assert(moves2.size() == moves.size());
-    // Board b("r3k2r/pppbqppp/2np1n2/2b1p1B1/2B1P3/2NP1N2/PPPQ1PPP/R3K2R w KQkq - 0 1");
-    // timedPerft2(b, 5);
-    while(true) {
-        string s;
-        getline(cin, s);
-        Board b(s);
-        int depth;
-        cin >> depth;
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    // while(true) {
+    //     string s;
+    //     getline(cin, s);
+    //     Board b(s);
+    //     int depth;
+    //     cin >> depth;
+    //     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
-        vector<string> v;
-        uint64_t total = divided_perft(b, depth, 1, v);
-        cout << "\nNodes searched: " << total << "\n";
-    }
+    //     vector<string> v;
+    //     uint64_t total = divided_perft(b, depth, 1, v);
+    //     cout << "\nNodes searched: " << total << "\n";
+    // }
 
 }
 

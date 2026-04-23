@@ -9,7 +9,13 @@ using Clock     = std::chrono::steady_clock;
 using TimePoint = Clock::time_point;
 
 constexpr int CHECKMATE = 8888888;
-constexpr int OUTOFTIME = -5555555;
+constexpr int OUTOFTIME = 5555555;
+constexpr int INF = 999999999;
 
-int negamax(Board &b, int depth, TimePoint time_limit = TimePoint::max());
+struct PVLine {
+    Move moves[64];
+    int length = 0;
+};
+
+int negamax(Board &b, int depth, int alpha, int beta, TimePoint time_limit, PVLine &pv);
 Move get_best_move(Board &b, int depth, int time_limit_ms = 0);
