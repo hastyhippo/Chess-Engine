@@ -6,3 +6,4 @@ weights/*
 .venv/
 nnue-pytorch/
 *.binpack
+training_runs/

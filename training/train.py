@@ -7,6 +7,7 @@ write trained weights to the weights/ storage directory.
 Run with the venv python:  .venv/bin/python train.py
 """
 
+import json
 import math
 import os
 import sys
@@ -20,6 +21,7 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 NNUE_DIR = os.path.join(ROOT, "nnue-pytorch")
 DATA_FILE = os.path.join(ROOT, "training_data.binpack")
 WEIGHTS_DIR = os.path.join(ROOT, "weights")
+TRAINING_RUNS_DIR = os.path.join(ROOT, "training_runs")
 
 sys.path.insert(0, NNUE_DIR)
 # The data_loader package locates ./build/libtraining_data_loader.dylib
@@ -35,7 +37,10 @@ NUM_SQUARES = 64
 PIECE_TYPE_CNT = 5
 
 
-INPUT_SIZE = NUM_SQUARES * NUM_SQUARES * PIECE_TYPE_CNT * 2
+REAL_INPUT_SIZE = NUM_SQUARES * NUM_SQUARES * PIECE_TYPE_CNT * 2
+VIRTUAL_INPUT_SIZE = NUM_SQUARES * PIECE_TYPE_CNT * 2
+TOTAL_INPUT_SIZE = VIRTUAL_INPUT_SIZE + REAL_INPUT_SIZE
+
 L1_SIZE = 512
 L2_SIZE = 32
 L3_SIZE = 32
@@ -49,7 +54,7 @@ EVAL_WEIGHT = 0.9
 class InputLayer(nn.Module):
     def __init__(self):
         super().__init__()
-        self.W = nn.Parameter((torch.randn(INPUT_SIZE, 256) * (np.sqrt(1.0/30.0))))
+        self.W = nn.Parameter((torch.randn(TOTAL_INPUT_SIZE, 256) * (np.sqrt(1.0/60.0))))
         self.b = nn.Parameter((torch.zeros(size = (256,))))
 
     def forward(self, white_indices, black_indices, white_to_move):
@@ -74,6 +79,7 @@ class NNUE(nn.Module):
         super().__init__()
         self.input = InputLayer()
         self.tower = nn.Sequential(
+            nn.Hardtanh(0.0, 1.0),
             nn.Linear(L1_SIZE, L2_SIZE), nn.Hardtanh(0.0, 1.0),
             nn.Linear(L2_SIZE, L3_SIZE), nn.Hardtanh(0.0, 1.0),
             nn.Linear(L3_SIZE, 1)
@@ -130,44 +136,78 @@ def visualize_position(white_indices, black_indices, us, outcome, score):
             print("    " + str(rank + 1) + "  " + " ".join(grid[rank]))
         print("       a b c d e f g h")
 
+def append_virtual_indices(indices):
+    v_indices = REAL_INPUT_SIZE + indices % (NUM_SQUARES * PIECE_TYPE_CNT * 2)
+    empty_mask = (indices == -1).to(torch.int32)
+    v_indices = v_indices * (1 - empty_mask) + (-1) * (empty_mask)
+    return torch.cat((indices, v_indices), dim = 1) 
 
-def train(model, n_batches, provider):
+def store_run(model, optimiser, run_id, losses, total_batches, elapsed):
+    """Store one run's record + final weights as a file pair in training_runs/."""
+    positions = total_batches * BATCH_SIZE
+    os.makedirs(TRAINING_RUNS_DIR, exist_ok=True)
+    weights_path = os.path.join(TRAINING_RUNS_DIR, f"{run_id}_weights.pt")
+    torch.save({"model": model.state_dict(), "optim": optimiser.state_dict(), "step": model.it}, weights_path)
+    record = {
+        "run_id": run_id,
+        "learning_rate": optimiser.param_groups[0]["lr"],
+        "batch_size": BATCH_SIZE,
+        "total_batches": total_batches,
+        "duration_seconds": round(elapsed, 2),
+        "positions_per_second": round(positions / elapsed),
+        "final_weights": weights_path,
+        "losses": losses,
+    }
+    with open(os.path.join(TRAINING_RUNS_DIR, f"{run_id}.json"), "w") as f:
+        json.dump(record, f, indent=2)
 
-    return
-    
+
 def execute_training_loop(model, provider, optimiser, total_batches):
     start = time.time()
-    for it, batch in zip(range(total_batches), provider): 
-        # loop through total_batches iterations of provider
+    loss_fn = torch.nn.MSELoss()
+
+    # One record per run, written to training_runs/ when the run finishes.
+    run_id = time.strftime("run_%Y%m%d_%H%M%S")
+    losses = {}
+
+    for it, batch in zip(range(total_batches), provider):
         # provider has an __iter__/ __next__ dunder which provides samples when looped through
         
         us, them, white_indices, black_indices, outcome, score, piece_count = batch
         # visualize_position(white_indices, black_indices, us, outcome, score)
 
+        white_indices = append_virtual_indices(white_indices)
+        black_indices = append_virtual_indices(black_indices)
+
         y_pred = model(white_indices, black_indices, us)
 
-        loss_fn = torch.nn.MSELoss()
-
+        # Use sigmoid to convert centipawn 
         p_pred = torch.sigmoid(y_pred / CP_CONV)
         p_target = torch.sigmoid(score / CP_CONV) * EVAL_WEIGHT + (1 - EVAL_WEIGHT) * outcome
         loss = loss_fn(p_pred, p_target)
+
+        # recalculate gradients and perform gradient descent
         optimiser.zero_grad()
         loss.backward()
         optimiser.step()
+
+        losses[it] = loss.item()
+
         if it % 100 == 0:
-            print(f"Loss: {loss}")
+            print(f"Loss: {loss.item()}")
 
         if model.it % SAVE_EVERY == 0:
             path = os.path.join(WEIGHTS_DIR, f"nnue_step{model.it:07d}.pt")
-            torch.save({"model": model.state_dict(),
-                        "optim": optimiser.state_dict(),
-                        "step": it}, path)
-            
+            torch.save({"model": model.state_dict(), "optim": optimiser.state_dict(), "step": it}, path)
+
     elapsed = time.time() - start
     positions = total_batches * BATCH_SIZE
 
+    store_run(model, optimiser, run_id, losses, total_batches, elapsed)
+
     print(f"\nstreamed {positions:,} positions in {elapsed:.2f}s "
           f"({positions / elapsed:,.0f} positions/sec)")
+    print(f"run record: training_runs/{run_id}.json")
 
     return
 
