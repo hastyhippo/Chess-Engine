@@ -29,7 +29,7 @@ os.chdir(NNUE_DIR)
 from data_loader import DataloaderSkipConfig, SparseBatchProvider
 
 FEATURE_SET = "HalfKP" 
-BATCH_SIZE = 2
+BATCH_SIZE = 8000
 NUM_WORKERS = 4
 NUM_SQUARES = 64
 PIECE_TYPE_CNT = 5
@@ -40,7 +40,10 @@ L1_SIZE = 512
 L2_SIZE = 32
 L3_SIZE = 32
 
+SAVE_EVERY = 10000
+
 CP_CONV = 400
+EVAL_WEIGHT = 0.9
 
 
 class InputLayer(nn.Module):
@@ -75,7 +78,9 @@ class NNUE(nn.Module):
             nn.Linear(L2_SIZE, L3_SIZE), nn.Hardtanh(0.0, 1.0),
             nn.Linear(L3_SIZE, 1)
         )
+        self.it = 0
     def forward(self, white_indices, black_indices, white_to_move):
+        self.it = self.it + 1
         return self.tower(self.input(white_indices, black_indices, white_to_move))
 
 
@@ -129,10 +134,10 @@ def visualize_position(white_indices, black_indices, us, outcome, score):
 def train(model, n_batches, provider):
 
     return
-
-def execute_training_loop(model, provider, total_batches):
+    
+def execute_training_loop(model, provider, optimiser, total_batches):
     start = time.time()
-    for i, batch in zip(range(total_batches), provider): 
+    for it, batch in zip(range(total_batches), provider): 
         # loop through total_batches iterations of provider
         # provider has an __iter__/ __next__ dunder which provides samples when looped through
         
@@ -140,13 +145,24 @@ def execute_training_loop(model, provider, total_batches):
         # visualize_position(white_indices, black_indices, us, outcome, score)
 
         y_pred = model(white_indices, black_indices, us)
-        print(f"Pred: {y_pred}")
-        print(f"Score: {score}" )
 
-        if i == 0:
-            print(f"batch size: {us.shape[0]}, max active features: {white_indices.shape[1]}")
-            max_idx = max(white_indices.max().item(), black_indices.max().item())
+        loss_fn = torch.nn.MSELoss()
 
+        p_pred = torch.sigmoid(y_pred / CP_CONV)
+        p_target = torch.sigmoid(score / CP_CONV) * EVAL_WEIGHT + (1 - EVAL_WEIGHT) * outcome
+        loss = loss_fn(p_pred, p_target)
+        optimiser.zero_grad()
+        loss.backward()
+        optimiser.step()
+        if it % 100 == 0:
+            print(f"Loss: {loss}")
+
+        if model.it % SAVE_EVERY == 0:
+            path = os.path.join(WEIGHTS_DIR, f"nnue_step{model.it:07d}.pt")
+            torch.save({"model": model.state_dict(),
+                        "optim": optimiser.state_dict(),
+                        "step": it}, path)
+            
     elapsed = time.time() - start
     positions = total_batches * BATCH_SIZE
 
@@ -154,8 +170,6 @@ def execute_training_loop(model, provider, total_batches):
           f"({positions / elapsed:,.0f} positions/sec)")
 
     return
-
-        
 
 
 def main():
@@ -167,9 +181,37 @@ def main():
     )
 
     model = NNUE()
+    opt = torch.optim.Adam(model.parameters(), lr = 1e-3)
 
-    execute_training_loop(model, provider, 1)
+    while(True):
+        ch = input("Command (l: load | t: train | s: save | q: quit): ")
+        if ch == 'l':
+            file_name = input("File name: ")
+            try:
+                path = os.path.join(WEIGHTS_DIR, file_name)
+                checkpoint = torch.load(path)
+                model.load_state_dict(checkpoint['model'])
+                opt.load_state_dict(checkpoint['optim'])
+                print(f"Loading: {file_name} succesful! \n\n")
+            except Exception as e:
+                print("Error loading file\n\n")
+        elif ch == 't':
+            cnt = int(input("How many iterations: "))
+            execute_training_loop(model, provider, opt, cnt)
+        elif ch == 's':
+            file_name = input("File name: ") +  ".pt"
+            try:
+                path = os.path.join(WEIGHTS_DIR, file_name)
+                torch.save({"model": model.state_dict(),
+                            "optim": opt.state_dict(),
+                            "step": model.it}, path)
+            except Exception as e:
+                print("Error saving file\n\n")
+        elif  ch == 'q':
+            return 0
 
+
+            
 
 if __name__ == "__main__":
     main()
