@@ -7,13 +7,14 @@ write trained weights to the weights/ storage directory.
 Run with the venv python:  .venv/bin/python train.py
 """
 
-import math  # noqa: F401
+import math
 import os
 import sys
 import time
 
-import numpy as np  # noqa: F401
-import torch  # noqa: F401
+import numpy as np
+import torch
+import torch.nn as nn
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 NNUE_DIR = os.path.join(ROOT, "nnue-pytorch")
@@ -25,50 +26,149 @@ sys.path.insert(0, NNUE_DIR)
 # relative to the current working directory.
 os.chdir(NNUE_DIR)
 
-from data_loader import DataloaderSkipConfig, SparseBatchProvider  # noqa: E402
+from data_loader import DataloaderSkipConfig, SparseBatchProvider
 
-FEATURE_SET = "HalfKAv2_hm"
-BATCH_SIZE = 16384
+FEATURE_SET = "HalfKP" 
+BATCH_SIZE = 2
 NUM_WORKERS = 4
+NUM_SQUARES = 64
+PIECE_TYPE_CNT = 5
+
+
+INPUT_SIZE = NUM_SQUARES * NUM_SQUARES * PIECE_TYPE_CNT * 2
+L1_SIZE = 512
+L2_SIZE = 32
+L3_SIZE = 32
+
+CP_CONV = 400
+
+
+class InputLayer(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.W = nn.Parameter((torch.randn(INPUT_SIZE, 256) * (np.sqrt(1.0/30.0))))
+        self.b = nn.Parameter((torch.zeros(size = (256,))))
+
+    def forward(self, white_indices, black_indices, white_to_move):
+        w_mask = (white_indices >= 0)
+        b_mask = (black_indices >= 0)
+
+        w_res = self.W[white_indices.clamp(min = 0)] # clamps = 0 to process -1 vals safely
+        w_res = w_res * w_mask.unsqueeze(-1) # multiplies the rows by a mask with dim (B, 30, 1) which zeros -1 rows
+        w_ret = w_res.sum(dim = 1) + self.b 
+
+        b_res = self.W[black_indices.clamp(min = 0)]
+        b_res = b_res * b_mask.unsqueeze(-1)
+        b_ret = b_res.sum(dim = 1) + self.b
+
+        us = w_ret * (white_to_move) + b_ret * (1 - white_to_move)
+        them = w_ret * (1 - white_to_move) + b_ret * (white_to_move)
+        out = torch.cat((us, them), dim = 1)
+        return out
+
+class NNUE(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.input = InputLayer()
+        self.tower = nn.Sequential(
+            nn.Linear(L1_SIZE, L2_SIZE), nn.Hardtanh(0.0, 1.0),
+            nn.Linear(L2_SIZE, L3_SIZE), nn.Hardtanh(0.0, 1.0),
+            nn.Linear(L3_SIZE, 1)
+        )
+    def forward(self, white_indices, black_indices, white_to_move):
+        return self.tower(self.input(white_indices, black_indices, white_to_move))
+
+
+def visualize_position(white_indices, black_indices, us, outcome, score):
+    def sq_name(sq):
+        return chr(ord('a') + sq % 8) + str(sq // 8 + 1)
+
+    def decode(idx):
+        ksq, rem = divmod(idx, 640)
+        p_idx, sq = divmod(rem, 64)
+        ptype, theirs = divmod(p_idx, 2)
+        return ksq, sq, ptype, theirs
+
+    print(f"white_indices {tuple(white_indices.shape)}:\n{white_indices}")
+    print(f"black_indices {tuple(black_indices.shape)}:\n{black_indices}")
+
+    for b in range(us.shape[0]):
+        # Decode each POV into physical-board terms (white's frame).
+        # Assumes orient() is a vertical flip (sq ^ 56) for black.
+        white_set, black_set = set(), set()
+        wksq = bksq = None
+        for idx in white_indices[b]:
+            if idx.item() < 0:
+                continue
+            ksq, sq, ptype, theirs = decode(idx.item())
+            white_set.add((sq, ptype, "black" if theirs else "white"))
+            wksq = ksq
+        for idx in black_indices[b]:
+            if idx.item() < 0:
+                continue
+            ksq, sq, ptype, theirs = decode(idx.item())
+            black_set.add((sq ^ 56, ptype, "white" if theirs else "black"))
+            bksq = ksq ^ 56
+
+        print(f"\nposition {b}: side to move: {'white' if us[b].item() else 'black'} | "
+              f"score {score[b].item():+.0f} cp | outcome {outcome[b].item()}")
+        # One grid, white's POV: uppercase = white, lowercase = black.
+        grid = [["." for _ in range(8)] for _ in range(8)]
+        for sq, ptype, colour in white_set | black_set:
+            piece = "PNBRQ"[ptype]
+            grid[sq // 8][sq % 8] = piece if colour == "white" else piece.lower()
+        if wksq is not None:
+            grid[wksq // 8][wksq % 8] = "K"
+        if bksq is not None:
+            grid[bksq // 8][bksq % 8] = "k"
+        for rank in range(7, -1, -1):
+            print("    " + str(rank + 1) + "  " + " ".join(grid[rank]))
+        print("       a b c d e f g h")
+
+
+def train(model, n_batches, provider):
+
+    return
+
+def execute_training_loop(model, provider, total_batches):
+    start = time.time()
+    for i, batch in zip(range(total_batches), provider): 
+        # loop through total_batches iterations of provider
+        # provider has an __iter__/ __next__ dunder which provides samples when looped through
+        
+        us, them, white_indices, black_indices, outcome, score, piece_count = batch
+        # visualize_position(white_indices, black_indices, us, outcome, score)
+
+        y_pred = model(white_indices, black_indices, us)
+        print(f"Pred: {y_pred}")
+        print(f"Score: {score}" )
+
+        if i == 0:
+            print(f"batch size: {us.shape[0]}, max active features: {white_indices.shape[1]}")
+            max_idx = max(white_indices.max().item(), black_indices.max().item())
+
+    elapsed = time.time() - start
+    positions = total_batches * BATCH_SIZE
+
+    print(f"\nstreamed {positions:,} positions in {elapsed:.2f}s "
+          f"({positions / elapsed:,.0f} positions/sec)")
+
+    return
+
+        
 
 
 def main():
     os.makedirs(WEIGHTS_DIR, exist_ok=True)
 
     provider = SparseBatchProvider(
-        FEATURE_SET,
-        [DATA_FILE],
-        BATCH_SIZE,
-        cyclic=True,
-        num_workers=NUM_WORKERS,
-        config=DataloaderSkipConfig(),
+        FEATURE_SET, [DATA_FILE], BATCH_SIZE, cyclic=True,
+        num_workers=NUM_WORKERS, config=DataloaderSkipConfig(),
     )
 
-    # Each batch is a tuple of torch tensors:
-    #   us            (batch, 1)  1.0 if white to move else 0.0
-    #   them          (batch, 1)  1.0 - us
-    #   white_indices (batch, max_active)  active HalfKAv2_hm feature indices
-    #   black_indices (batch, max_active)  (padded with -1)
-    #   outcome       (batch, 1)  game result from side to move: 1 / 0.5 / 0
-    #   score         (batch, 1)  engine eval in centipawns from side to move
-    #   piece_count   (batch,)
-    #
-    # TODO: define the network and train on these batches, then serialize
-    # weights to a file under WEIGHTS_DIR for the engine to load.
-    n_batches = 20
-    start = time.time()
-    for i, batch in zip(range(n_batches), provider):
-        us, them, white_indices, black_indices, outcome, score, piece_count = batch
-        if i == 0:
-            print(f"batch size: {us.shape[0]}, max active features: {white_indices.shape[1]}")
-        print(
-            f"batch {i + 1:>3}: mean score {score.mean():>8.2f} cp | "
-            f"mean outcome {outcome.mean():.3f} | white-to-move {us.mean():.3f}"
-        )
-    elapsed = time.time() - start
-    positions = n_batches * BATCH_SIZE
-    print(f"\nstreamed {positions:,} positions in {elapsed:.2f}s "
-          f"({positions / elapsed:,.0f} positions/sec)")
+    model = NNUE()
+
+    execute_training_loop(model, provider, 1)
 
 
 if __name__ == "__main__":

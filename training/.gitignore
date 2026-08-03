@@ -1,3 +1,8 @@
 # Trained weights are build artifacts, not source
 weights/*
 !weights/.gitkeep
+
+# Local tooling and data — not part of this repo
+.venv/
+nnue-pytorch/
+*.binpack
