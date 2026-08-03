@@ -87,17 +87,19 @@ void UCI::position(string cmd) {
     if (tokens.size() < 2) return;
     
     // Parse position
-    int ind = 1;
-    if (tokens[ind++] == "startpos") {
+    size_t ind = 1;
+    if (tokens[ind] == "startpos") {
+        ind++;
         board = Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    } else if (tokens[ind++] == "fen") {
+    } else if (tokens[ind] == "fen") {
+        ind++;
         string new_fen = "";
         for (int fen_tokens = 0; fen_tokens < 6; fen_tokens++) {
             if (ind >= tokens.size()) {
                 cout << "FEN STRING invalid and not long enough";
                 return;
             }
-            new_fen += tokens[ind];
+            new_fen += tokens[ind++] + " ";
         }
         board = Board(new_fen);
     } else {
@@ -107,11 +109,14 @@ void UCI::position(string cmd) {
 
     // Parse moves
     if (ind < tokens.size() && tokens[ind] == "moves") {
-        Move m = parse_uci_move(tokens[ind++]);
-        board.make_move(m);
+        ind++;
+        while (ind < tokens.size()) {
+            Move m = parse_uci_move(tokens[ind++]);
+            board.make_move(m);
+        }
     }
 
-    board.printBoard();
+    if (debug) board.printBoard();
 }
 
 void UCI::go(string cmd) {
