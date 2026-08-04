@@ -2,33 +2,53 @@
 #include "eval.h"
 int nodes_searched = 0;
 int qnodes_searched = 0;
+
+TTEntry tt[TT_SIZE];
+int tt_age = 0;
 int negamax(Board &b, int depth, int alpha, int beta, TimePoint time_limit, PVLine &pv) {
     pv.length = 0;
-
     if (nodes_searched++ % 2048 == 0) {
-        if (Clock::now() >= time_limit)
+        if (Clock::now() >= time_limit) {
             return OUTOFTIME;
+        }
     }
 
     // repetition or 50-move rule scores as a draw
-    if (b.is_repetition() || b.getHalfMoveClock() >= 100)
+    if (b.is_repetition() || b.getHalfMoveClock() >= 100) {
         return 0;
+    }
 
-    if (depth == 0)
+    if (depth == 0) {
         return qsearch(b, alpha, beta, 0);
+    }
 
     MoveList possible_moves = generate_moves<ALL_MOVES>(b);
 
-    if (possible_moves.size == 0)
+    if (possible_moves.size == 0) {
         return b.in_check() ? -(CHECKMATE + depth) : 0;
+    }
 
+    uint64_t key = b.getHash();
+    TTEntry* tte = probe(key);
+    if (tte != NULL &&  tte->key == key && tte->depth >= depth) {
+        int value = tte->value;
+        if (value > MATE_SCORE) value = value + depth;
+        if (value < -MATE_SCORE) value = value - depth;
+        if (tte->bound == EXACT) return value;
+        // tree is too good to be true, it crashed because it found a move value greater than beta 
+        //   will crash again if ran 
+        if (tte->bound == LOWER && value >= beta) return value;
+        // we know that every value searched in this tree is worse than alpha (didn't improve alpha_original)
+        //   will not find anything again if failed like this previously
+        if (tte->bound == UPPER && value <= alpha) return value;
+    } 
+
+    int alpha_orig = alpha;
     int value = -CHECKMATE - 1;
-
-    update_movelist_evals(b, possible_moves); // For move ordering
+    update_movelist_evals(b, possible_moves, tte->key == key ? tte->move : MOVE_NONE); // For move ordering
     int it = 0;
     while (it < possible_moves.size) { // get it'th best move according to move ordering
         Move m = possible_moves.get_next_move(it++);
-        
         PVLine child_pv;
         b.make_move(m);
         int res = negamax(b, depth - 1, -beta, -alpha, time_limit, child_pv);
@@ -45,9 +65,23 @@ int negamax(Board &b, int depth, int alpha, int beta, TimePoint time_limit, PVLi
         }
 
         alpha = max(alpha, score);
-        if (alpha >= beta)
-            break;
+        if (alpha >= beta) break;
     }
+
+    // update the big tt
+    int tt_value = value;
+    if (value > MATE_SCORE)         tt_value -= depth;
+    else if (value < -MATE_SCORE)   tt_value += depth;
+
+    tte->key   = key;
+    tte->value = value;
+    tte->move  = pv.moves[0];
+    tte->depth = depth;
+    tte->bound = (value <= alpha_orig) ? UPPER 
+               : (value >= beta)       ? LOWER 
+                                       : EXACT;
+    tte->age = tt_age;
+
     return value;
 }
 
@@ -63,25 +97,23 @@ int piece_value(uint8_t piece_type) {
 int SEE(Board &b, Move &m) {
     static const int val[6] = {100, 300, 300, 500, 900, 20000};
     uint8_t from_sq = m.getFromSq(), to_sq = m.getToSq();
-    Colour stm = b.isWhiteTurn() ? WHITE : BLACK;
-
+    Colour white_to_move = b.isWhiteTurn() ? WHITE : BLACK;
     uint64_t occ = b.get_occupancy() ^ (1ULL << from_sq);
     int gain[TOTAL_PIECES];
-    int d = 0;
 
     if (m.getMoveFlag() == ENPASSANT) {
         gain[0] = val[PAWN];
-        occ ^= 1ULL << (stm == WHITE ? to_sq - 8 : to_sq + 8);
+        occ ^= 1ULL << (white_to_move == WHITE ? to_sq - 8 : to_sq + 8);
     } else {
-        uint8_t victim = b.pieceOn(to_sq);
-        gain[0] = victim == EMPTY_SQ ? 0 : val[type_of(victim)];
+        gain[0] = piece_value(b.pieceOn(to_sq));
     }
 
     int attacker = type_of(b.pieceOn(from_sq));  // piece now standing on to_sq
-    Colour side = ~stm;
+    Colour side = ~white_to_move;
 
+    int capt_cnt = 1;
     // Continually perform recaptures with the least valuable piece for the to_sq
-    while (d <= TOTAL_PIECES) {
+    for (; capt_cnt < TOTAL_PIECES; capt_cnt++) {
         uint64_t atk = attackers_of(b, side, to_sq, occ);
         if (!atk) break;
 
@@ -94,17 +126,15 @@ int SEE(Board &b, Move &m) {
         // breakpoint: king is last to recapture a piece but can't
         if (t == KING && attackers_of(b, ~side, to_sq, occ)) break;
 
-        d++;
-        gain[d] = val[attacker] - gain[d - 1];  // score if this recapture happens
+        gain[capt_cnt] = val[attacker] - gain[capt_cnt - 1];  // score if this recapture happens
         attacker = t;
         occ ^= least & -least;  // remove the used attacker, may reveal an x-ray
         side = ~side;
     }
 
     // each side may decline to recapture: negamax the swap list backwards
-    while (d) {
-        gain[d - 1] = -max(-gain[d - 1], gain[d]);
-        d--;
+    for (int i = capt_cnt - 1; i > 0; i--) { 
+        gain[i - 1] = -max(-gain[i - 1], gain[i]);
     }
     return gain[0];
 }
@@ -159,6 +189,11 @@ static string score_string(int value, int depth) {
     return "cp " + to_string(value);
 }
 
+TTEntry* probe(uint64_t key) {
+    // only works when TT_SIZE is a power of 2
+    return &tt[key & (TT_SIZE - 1)];
+}
+
 Move get_best_move(Board &b, int depth, int time_limit_ms) {
     if (generate_moves<ALL_MOVES>(b).size == 0) return Move();
 
@@ -168,6 +203,7 @@ Move get_best_move(Board &b, int depth, int time_limit_ms) {
 
     Move best_move;
     nodes_searched = 0;
+    tt_age++;  // entries from previous searches become stale-but-usable
 
     for (int d = 1; d <= depth; d++) {
         PVLine pv;
@@ -175,7 +211,7 @@ Move get_best_move(Board &b, int depth, int time_limit_ms) {
 
         int best_value = -CHECKMATE - 1;
         MoveList moves = generate_moves<ALL_MOVES>(b);
-        update_movelist_evals(b, moves);
+        update_movelist_evals(b, moves, d > 1 ? best_move : MOVE_NONE);
 
         Move iter_best = moves[0];
         bool out_of_time = false;

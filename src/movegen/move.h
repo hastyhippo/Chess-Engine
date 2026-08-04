@@ -14,12 +14,9 @@ using namespace std;
 
 class Move {
     private:
-        // uint8_t from_sq;
-        // uint8_t to_sq;
-        // uint8_t move_flag;
-        uint16_t move_data;
+        uint16_t move_data = 0;  // 0 = a1a1, impossible move, reserved as the null move
     public:
-        Move() = default;
+        constexpr Move() = default;
         Move(uint8_t from_sq, uint8_t to_sq, uint8_t move_flag);
         string getName();
     
@@ -28,5 +25,11 @@ class Move {
         uint8_t getMoveFlag();
         bool isPromo();
         PieceType promoPiece();
+    
+    bool operator == (const Move& other)  const {
+        return move_data == other.move_data;
+    }
 
 };
+
+inline constexpr Move MOVE_NONE{};

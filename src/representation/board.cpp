@@ -209,7 +209,7 @@ void Board::make_move(Move m) {
 
     castling_rights &= ~(castling_mask[from_sq] | castling_mask[to_sq]);
     
-    // ZOBRIST HASH UPDATE
+    // STATE UPDATE  + hash updates
 
     // hash out old side/ep/castling state
     hash ^= zob_hash.black_to_move;
@@ -260,11 +260,12 @@ void Board::make_move(Move m) {
     new_board_info |= (enp_file << 10) & ENPASSANT_BITMASK;
     board_info = new_board_info;
 
-    // reset on capture or pawn move, else count up (saturate, don't wrap)
-    if (type_of(moving) == PAWN || new_bs.captured_piece != NO_PIECE)
+    // reset on capture or pawn move
+    if (type_of(moving) == PAWN || new_bs.captured_piece != NO_PIECE) {
         halfmove_clock = 0;
-    else if (halfmove_clock < 250)
+    } else if (halfmove_clock < 250) { // we stop at 250, because the value is capped at 250
         halfmove_clock++;
+    }
 
     // hash in new castling/ep state
     hash ^= zob_hash.castling[castling_rights & CASTLING_BITMASK];

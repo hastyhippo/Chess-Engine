@@ -92,12 +92,16 @@ class Board {
 
 int psqt_mg(int colour, int type, int sq);  // defined in eval.cpp
 
-inline void update_movelist_evals(Board &b, MoveList &ml) {
+inline void update_movelist_evals(Board &b, MoveList &ml, Move priority = Move()) {
     constexpr int piece_val[6] = {100, 300, 300, 500, 900, 0};
     Colour side = b.isWhiteTurn() ? WHITE : BLACK;
 
     for (int i = 0; i < ml.size; i++) {
         Move &m = ml.moves[i];
+        if (m == priority) {
+            ml.evals[i] = INT16_MAX;
+            continue;
+        }
         int16_t score = 0;
 
         uint8_t fromPiece = b.pieceOn(m.getFromSq());
