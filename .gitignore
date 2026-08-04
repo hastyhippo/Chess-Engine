@@ -1,0 +1,7 @@
+# Build output — never commit compiler artifacts
+build/
+build-mac/
+build*/
+
+# OS noise
+.DS_Store
