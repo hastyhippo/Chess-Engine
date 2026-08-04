@@ -1,7 +1,7 @@
 #include "search.h"
-
+#include "eval.h"
 int nodes_searched = 0;
-
+int qnodes_searched = 0;
 int negamax(Board &b, int depth, int alpha, int beta, TimePoint time_limit, PVLine &pv) {
     pv.length = 0;
 
@@ -14,13 +14,13 @@ int negamax(Board &b, int depth, int alpha, int beta, TimePoint time_limit, PVLi
     if (b.is_repetition() || b.getHalfMoveClock() >= 100)
         return 0;
 
+    if (depth == 0)
+        return qsearch(b, alpha, beta, 0);
+
     MoveList possible_moves = generate_moves<ALL_MOVES>(b);
 
     if (possible_moves.size == 0)
         return b.in_check() ? -(CHECKMATE + depth) : 0;
-
-    if (depth == 0)
-        return evaluate(b);
 
     int value = -CHECKMATE - 1;
 
@@ -49,6 +49,103 @@ int negamax(Board &b, int depth, int alpha, int beta, TimePoint time_limit, PVLi
             break;
     }
     return value;
+}
+
+int piece_value(uint8_t piece_type) { 
+    if (piece_type == EMPTY_SQ) {
+        return 0;
+    } else {
+        return PIECE_VALUES[piece_type];
+    }
+}
+
+// Swap algorithm: simulate the capture sequence on to_sq, always recapturing with the least valuable attacker.
+int SEE(Board &b, Move &m) {
+    static const int val[6] = {100, 300, 300, 500, 900, 20000};
+    uint8_t from_sq = m.getFromSq(), to_sq = m.getToSq();
+    Colour stm = b.isWhiteTurn() ? WHITE : BLACK;
+
+    uint64_t occ = b.get_occupancy() ^ (1ULL << from_sq);
+    int gain[TOTAL_PIECES];
+    int d = 0;
+
+    if (m.getMoveFlag() == ENPASSANT) {
+        gain[0] = val[PAWN];
+        occ ^= 1ULL << (stm == WHITE ? to_sq - 8 : to_sq + 8);
+    } else {
+        uint8_t victim = b.pieceOn(to_sq);
+        gain[0] = victim == EMPTY_SQ ? 0 : val[type_of(victim)];
+    }
+
+    int attacker = type_of(b.pieceOn(from_sq));  // piece now standing on to_sq
+    Colour side = ~stm;
+
+    // Continually perform recaptures with the least valuable piece for the to_sq
+    while (d <= TOTAL_PIECES) {
+        uint64_t atk = attackers_of(b, side, to_sq, occ);
+        if (!atk) break;
+
+        int t = PAWN;
+        uint64_t least = 0;
+        for (; t <= KING; t++) {
+            least = atk & typed_bb(b, side, t);
+            if (least) break;
+        }
+        // breakpoint: king is last to recapture a piece but can't
+        if (t == KING && attackers_of(b, ~side, to_sq, occ)) break;
+
+        d++;
+        gain[d] = val[attacker] - gain[d - 1];  // score if this recapture happens
+        attacker = t;
+        occ ^= least & -least;  // remove the used attacker, may reveal an x-ray
+        side = ~side;
+    }
+
+    // each side may decline to recapture: negamax the swap list backwards
+    while (d) {
+        gain[d - 1] = -max(-gain[d - 1], gain[d]);
+        d--;
+    }
+    return gain[0];
+}
+
+int qsearch(Board &b, int alpha, int beta, int qdepth) {
+    qnodes_searched++;
+    bool check = b.in_check();
+    int static_eval = 0;
+
+    if (!check) {
+        static_eval = evaluate(b);
+        if (static_eval >= beta) return beta;
+        if (static_eval > alpha) alpha = static_eval;
+    }
+
+    // in check: every evasion must be searched, captures alone can't answer a check
+    MoveList moves = check ? generate_moves<ALL_MOVES>(b) : generate_moves<CAPTURES>(b);
+    if (check && moves.size == 0) {
+        return -CHECKMATE + qdepth;
+    }
+
+    update_movelist_evals(b, moves);
+    int it = 0;
+    while (it < moves.size) {
+        Move m = moves.get_next_move(it++);
+
+        if (!check) {
+            uint8_t victim = b.pieceOn(m.getToSq());
+            int vic = m.getMoveFlag() == ENPASSANT ? 100 : 
+                        victim != EMPTY_SQ ? PIECE_VALUES[type_of(victim)] : 0;
+            if (SEE(b, m) < 0) continue;
+        }
+
+        b.make_move(m);
+        int score = -qsearch(b, -beta, -alpha, qdepth + 1);
+        b.unmake_move(m);
+
+        if (score >= beta) return beta;
+        if (score > alpha) alpha = score;
+    }
+    return alpha;
 }
 
 static string score_string(int value, int depth) {

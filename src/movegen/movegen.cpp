@@ -47,12 +47,15 @@ MoveList generate_moves(Board& b) {
                         (Type == QUIET)     ? ~s.enemy_occ_sq : ~0ULL;
 
     if (s.num_attackers == 1) valid_sq = ray_between(get_lsb(attackers), king_sq);
-    return generate_all_moves(b, valid_sq, s);
+
+    // king escapes are exempt from valid_sq, but CAPTURES must still filter them
+    uint64_t king_mask = (Type == CAPTURES) ? s.enemy_occ_sq : ~0ULL;
+    return generate_all_moves(b, valid_sq, king_mask, s);
 }
 
-MoveList generate_all_moves(Board &b, uint64_t valid_sq, MovegenState &s) {
+MoveList generate_all_moves(Board &b, uint64_t valid_sq, uint64_t king_mask, MovegenState &s) {
     MoveList moves{};
-    addKingMoves(b, moves, s);
+    addKingMoves(b, moves, king_mask, s);
     if (s.num_attackers >= 2) return moves;
 
     addPawnMoves<ALL_MOVES>(b, moves, valid_sq, s);
@@ -230,12 +233,12 @@ void addSlidingMoves(Board& b, MoveList& moves, uint64_t valid_sq, MovegenState 
     }
 }
 
-void addKingMoves(Board& b, MoveList& moves, MovegenState &s) {
+void addKingMoves(Board& b, MoveList& moves, uint64_t king_mask, MovegenState &s) {
     uint64_t king = b.getKingBitboard(s.side);
     assert(king);
 
     uint8_t sq = pop_lsb(&king);
-    uint64_t king_sq = king_moves[sq] & ~s.friendly_occ_sq;
+    uint64_t king_sq = king_moves[sq] & ~s.friendly_occ_sq & king_mask;
 
     while (king_sq) {
         uint8_t target_sq = pop_lsb(&king_sq);
@@ -255,13 +258,34 @@ void addKingMoves(Board& b, MoveList& moves, MovegenState &s) {
                 uint8_t clear_sq = pop_lsb(&cleared_sq);
                 if (b.attackers_to(clear_sq, 0ULL, s.all_occ_sq)) { can_castle = false; break; }
             }
-            if (can_castle) moves.add(Move(sq, castling_target_sq[s.side][i], CASTLE));
+            // castling is quiet: excluded whenever king_mask filters to captures
+            if (can_castle && ((1ULL << castling_target_sq[s.side][i]) & king_mask))
+                moves.add(Move(sq, castling_target_sq[s.side][i], CASTLE));
         }
     }
 }
 
 uint64_t ray_between(int sq_1, int sq_2) {
     return ray_between_table[sq_1][sq_2];
+}
+
+uint64_t attackers_of(Board &b, Colour c, uint8_t sq, uint64_t occ) {
+    return ((pawn_attacks[~c][sq] & b.getPawnBitboard(c)) |
+            (knight_moves[sq] & b.getKnightBitboard(c)) |
+            (get_bishop_attacks(occ, sq) & (b.getBishopBitboard(c) | b.getQueenBitboard(c))) |
+            (get_rook_attacks(occ, sq) & (b.getRookBitboard(c) | b.getQueenBitboard(c))) |
+            (king_moves[sq] & b.getKingBitboard(c))) & occ;
+}
+
+uint64_t typed_bb(Board &b, Colour c, int t) {
+    switch (t) {
+        case PAWN:   return b.getPawnBitboard(c);
+        case KNIGHT: return b.getKnightBitboard(c);
+        case BISHOP: return b.getBishopBitboard(c);
+        case ROOK:   return b.getRookBitboard(c);
+        case QUEEN:  return b.getQueenBitboard(c);
+        default:     return b.getKingBitboard(c);
+    }
 }
 
 template MoveList generate_moves<ALL_MOVES>(Board& b);

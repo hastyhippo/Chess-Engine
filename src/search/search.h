@@ -22,3 +22,5 @@ struct PVLine {
 };
 
 int negamax(Board &b, int depth, int alpha, int beta, TimePoint time_limit, PVLine &pv);
+int qsearch(Board &b, int alpha, int beta, int qdepth);
+int SEE(Board &b, Move &m);

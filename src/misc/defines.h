@@ -14,6 +14,8 @@ using namespace std;
 #define KINGSIDE 0
 #define QUEENSIDE 1
 
+#define TOTAL_PIECES 32
+
 class Board;
 // using the Fancy approach: https://www.chessprogramming.org/Magic_Bitboards
 struct SMagic {

@@ -3,7 +3,6 @@
 
 bool use_pesto = true;
 
-static const int PIECE_VALUES[] = { 100, 320, 330, 500, 900, 0 };
 
 // PeSTO piece-square tables (from Rofchade)
 // Indexed [0..63] where index 0 = a8 (rank 8, file a), index 63 = h1
