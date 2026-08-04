@@ -83,7 +83,6 @@ void UCI::uci_new_game() {
 
 void UCI::position(string cmd) {
     vector<string> tokens = splitString(cmd, ' ');
-    
     if (tokens.size() < 2) return;
     
     // Parse position
@@ -103,7 +102,6 @@ void UCI::position(string cmd) {
         }
         board = Board(new_fen);
     } else {
-        cout << "invalid input for position";
         return;
     }
 
@@ -131,50 +129,38 @@ static int allocate_time_ms(int mytime, int myinc, int movetime) {
 
 void UCI::go(string cmd) {
     vector<string> tokens = splitString(cmd, ' ');
-    
+
     int depth = 5;
-    bool infinite = false;
     int movetime = 0;
     int wtime = 0, btime = 0, winc = 0, binc = 0;
-    
-    for (size_t i = 1; i < tokens.size(); i++) {
-        if (tokens[i++] == "depth") {
-            if (i >= tokens.size()) {
-                cout << "Error with tokens: depth";
+    bool infinite = false;
+
+    for (int i = 1; i < (int)tokens.size(); i++) {
+        if (tokens[i] == "perft" && i + 1 < (int)tokens.size()) {
+            int perft_depth = stoi(tokens[++i]);
+            MoveList moves = generate_moves<ALL_MOVES>(board);
+            uint64_t total = 0;
+            for (Move m : moves) {
+                board.make_move(m);
+                uint64_t nodes = perft(board, perft_depth - 1);
+                board.unmake_move(m);
+                cout << move_to_uci(m) << ": " << nodes << "\n";
+                total += nodes;
             }
-            depth = stoi(tokens[i++]);
-        } else if (tokens[i++] == "infinite") {
-            infinite = true;
-        } else if (tokens[i++] == "movetime") {
-            if (i >= tokens.size()) {
-                cout << "Error with tokens: movetime";
-            }
-            movetime = stoi(tokens[i++]);
-        } else if (tokens[i++] == "wtime") {
-            if (i >= tokens.size()) {
-                cout << "Error with tokens: wtime";
-            }
-            wtime = stoi(tokens[i++]);
-        } else if (tokens[i++] == "btime") {
-            if (i >= tokens.size()) {
-                cout << "Error with tokens: btime";
-            }
-            btime = stoi(tokens[i++]);
-        } else if (tokens[i++] == "winc") {
-            if (i >= tokens.size()) {
-                cout << "Error with tokens: winc";
-            }
-            winc = stoi(tokens[i++]);
-        } else if (tokens[i++] == "binc") {
-            if (i >= tokens.size()) {
-                cout << "Error with tokens: binc";
-            }
-            binc = stoi(tokens[i++]);
-        }
+            cout << "\nNodes searched: " << total << "\n";
+            return;
+        } 
+        else if (tokens[i] == "depth"      && i + 1 < (int)tokens.size()) depth    = stoi(tokens[++i]);
+        else if (tokens[i] == "movetime"   && i + 1 < (int)tokens.size()) movetime = stoi(tokens[++i]);
+        else if (tokens[i] == "wtime"      && i + 1 < (int)tokens.size()) wtime    = stoi(tokens[++i]);
+        else if (tokens[i] == "btime"      && i + 1 < (int)tokens.size()) btime    = stoi(tokens[++i]);
+        else if (tokens[i] == "winc"       && i + 1 < (int)tokens.size()) winc     = stoi(tokens[++i]);
+        else if (tokens[i] == "binc"       && i + 1 < (int)tokens.size()) binc     = stoi(tokens[++i]);
+        else if (tokens[i] == "infinite")   infinite = true;
     }
-    
+
     stop_search = false;
-        
+
     MoveList moves = generate_moves<ALL_MOVES>(board);
     if (moves.size == 0) {
         cout << "bestmove (none)\n";
