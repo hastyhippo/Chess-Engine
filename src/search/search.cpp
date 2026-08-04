@@ -68,8 +68,8 @@ Move get_best_move(Board &b, int depth, int time_limit_ms) {
         auto start = Clock::now();
 
         int best_value = -CHECKMATE - 1;
-        Move iter_best;
         MoveList moves = generate_moves<ALL_MOVES>(b);
+        Move iter_best = moves[0];
         bool out_of_time = false;
 
         for (Move m : moves) {

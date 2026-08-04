@@ -1,4 +1,5 @@
 #include "init.h"
+#include "../search/eval.h"
 #include <cstdint>
 
 // Local helpers for move generation initialisation
@@ -15,6 +16,7 @@ static void initialiseRayBetween();
 
 void init() {
     initialiseMoveGeneration();
+    init_pesto_tables();
 }
 
 void initialiseMoveGeneration() {
