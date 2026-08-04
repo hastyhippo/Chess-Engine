@@ -32,6 +32,13 @@ int main(int argc, char** argv) {
                 return res;
             }
             return 0;
+        } else if (string(argv[i]) == "-b") {
+            doctest::Context context;
+            context.setOption("no-output-redirect", true);
+            context.setOption("test-suite", "search speed");
+            int res = context.run();
+            if (context.shouldExit()) return res;
+            return 0;
         } else if (string(argv[i]) == "-s") {
             doctest::Context context;
             context.setOption("no-output-redirect", true);

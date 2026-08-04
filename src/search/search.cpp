@@ -10,8 +10,8 @@ int negamax(Board &b, int depth, int alpha, int beta, TimePoint time_limit, PVLi
             return OUTOFTIME;
     }
 
-    // first repetition scores as a draw
-    if (b.is_repetition())
+    // repetition or 50-move rule scores as a draw
+    if (b.is_repetition() || b.getHalfMoveClock() >= 100)
         return 0;
 
     MoveList possible_moves = generate_moves<ALL_MOVES>(b);
@@ -23,7 +23,12 @@ int negamax(Board &b, int depth, int alpha, int beta, TimePoint time_limit, PVLi
         return evaluate(b);
 
     int value = -CHECKMATE - 1;
-    for (Move m : possible_moves) {
+
+    update_movelist_evals(b, possible_moves); // For move ordering
+    int it = 0;
+    while (it < possible_moves.size) { // get it'th best move according to move ordering
+        Move m = possible_moves.get_next_move(it++);
+        
         PVLine child_pv;
         b.make_move(m);
         int res = negamax(b, depth - 1, -beta, -alpha, time_limit, child_pv);
@@ -47,10 +52,10 @@ int negamax(Board &b, int depth, int alpha, int beta, TimePoint time_limit, PVLi
 }
 
 static string score_string(int value, int depth) {
-    if (value > CHECKMATE - 1000) {
+    if (value > MATE_SCORE) {
         int moves_to_mate = (CHECKMATE + depth - value + 1) / 2;
         return "mate " + to_string(moves_to_mate);
-    } else if (value < -(CHECKMATE - 1000)) {
+    } else if (value < -MATE_SCORE) {
         int moves_to_mate = (CHECKMATE + depth + value + 1) / 2;
         return "mate -" + to_string(moves_to_mate);
     }
@@ -73,10 +78,14 @@ Move get_best_move(Board &b, int depth, int time_limit_ms) {
 
         int best_value = -CHECKMATE - 1;
         MoveList moves = generate_moves<ALL_MOVES>(b);
+        update_movelist_evals(b, moves);
+
         Move iter_best = moves[0];
         bool out_of_time = false;
 
-        for (Move m : moves) {
+        int it = 0;
+        while (it < moves.size) {
+            Move m = moves.get_next_move(it++);
             PVLine child_pv;
             b.make_move(m);
             int res = negamax(b, d - 1, -INF, INF, time_limit, child_pv);
@@ -92,23 +101,28 @@ Move get_best_move(Board &b, int depth, int time_limit_ms) {
                 memcpy(pv.moves + 1, child_pv.moves, child_pv.length * sizeof(Move));
                 pv.length = child_pv.length + 1;
             }
+
+            if (value >= MATE_SCORE) {
+                break;  // finds a forced mate
+            }
         }
 
         if (out_of_time) break;
 
         best_move = iter_best;
-
-        {
-            double elapsed = duration<double, milli>(Clock::now() - start).count();
-            cout << "info depth " << d
-                 << " score " << score_string(best_value, d)
-                 << " nodes " << nodes_searched
-                 << " time " << (int)elapsed
-                 << " pv";
-            for (int i = 0; i < pv.length; i++)
-                cout << " " << pv.moves[i].getName();
-            cout << "\n";
-            cout.flush();
+        double elapsed = duration<double, milli>(Clock::now() - start).count();
+        cout << "info depth " << d
+                << " score " << score_string(best_value, d)
+                << " nodes " << nodes_searched
+                << " time " << (int)elapsed
+                << " pv";
+        for (int i = 0; i < pv.length; i++)
+            cout << " " << pv.moves[i].getName();
+        cout << "\n";
+        cout.flush();
+        
+        if (best_value >= MATE_SCORE) {
+            break;
         }
     }
 

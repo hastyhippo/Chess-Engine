@@ -15,6 +15,7 @@ Board::Board() {
         this->pieces_arr[i] = EMPTY_SQ;
     }
     hash = 0;
+    halfmove_clock = 0;
 }
 
 Board::Board(string FEN) {
@@ -81,7 +82,7 @@ Board::Board(string FEN) {
         new_board_info |= (NO_ENP) << 10;
     }
 
-    new_board_info |= stoi(fen_split[4]) << 4;
+    halfmove_clock = (uint8_t)min(stoi(fen_split[4]), 250);
     this->board_info = new_board_info;
     this->move_number = stoi(fen_split[5]);
     hash = zobrist_hash(*this);
@@ -162,7 +163,7 @@ uint8_t Board::getCastlingRights() {
 }
 
 uint8_t Board::getHalfMoveClock() {
-    return (this->board_info & HALFMOVES_BITMASK) >> 4;
+    return halfmove_clock;
 }
 
 uint8_t Board::getEnpassantFile() {
@@ -193,10 +194,12 @@ void Board::make_move(Move m) {
     Colour side = white_turn ? WHITE : BLACK;
 
     // Save old board_info BEFORE modifying it
+
     BoardState new_bs;
     new_bs.board_info = board_info;  // Save OLD board_info
     new_bs.enpassant_sq = NO_ENP_SQ;
     new_bs.captured_piece = NO_PIECE;
+    new_bs.halfmove = halfmove_clock;
     new_bs.hash = hash;
 
     uint8_t from_sq = m.getFromSq();
@@ -205,6 +208,8 @@ void Board::make_move(Move m) {
     uint8_t castling_rights = getCastlingRights();
 
     castling_rights &= ~(castling_mask[from_sq] | castling_mask[to_sq]);
+    
+    // ZOBRIST HASH UPDATE
 
     // hash out old side/ep/castling state
     hash ^= zob_hash.black_to_move;
@@ -229,6 +234,8 @@ void Board::make_move(Move m) {
         swap_piece(to_sq, promo);
     }
 
+    // MOVE FLAG HANDLING
+
     uint8_t enp_file = NO_ENP;
     if (move_flag == DOUBLE_PUSH) {
         enp_file = (to_sq % 8);
@@ -251,8 +258,13 @@ void Board::make_move(Move m) {
     // Update board_info with new castling rights and en passant
     uint16_t new_board_info = (castling_rights & CASTLING_BITMASK);
     new_board_info |= (enp_file << 10) & ENPASSANT_BITMASK;
-    new_board_info |= (board_info & HALFMOVES_BITMASK);
     board_info = new_board_info;
+
+    // reset on capture or pawn move, else count up (saturate, don't wrap)
+    if (type_of(moving) == PAWN || new_bs.captured_piece != NO_PIECE)
+        halfmove_clock = 0;
+    else if (halfmove_clock < 250)
+        halfmove_clock++;
 
     // hash in new castling/ep state
     hash ^= zob_hash.castling[castling_rights & CASTLING_BITMASK];
@@ -264,7 +276,9 @@ void Board::make_move(Move m) {
 }
 
 bool Board::is_repetition() {
-    for (int i = state_history_size - 2; i >= 0; i -= 2) {
+    // only positions since the last irreversible move can repeat
+    int limit = max(state_history_size - (int)halfmove_clock, 0);
+    for (int i = state_history_size - 2; i >= limit; i -= 2) {
         if (state_history[i].hash == hash) return true;
     }
     return false;
@@ -273,6 +287,7 @@ bool Board::is_repetition() {
 void Board::unmake_move(Move m) {
     BoardState prev_state = state_history[--state_history_size];
     hash = prev_state.hash;
+    halfmove_clock = prev_state.halfmove;
 
     this->move_number--;
     this->white_turn = !this->white_turn;

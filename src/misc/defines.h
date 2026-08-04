@@ -176,10 +176,22 @@ constexpr int MAX_MOVES_GEN = 256;
 
 struct MoveList {
     Move moves[MAX_MOVES_GEN];
+    int16_t evals[MAX_MOVES_GEN];
+
     int size = 0;
 
     void add(Move m) {
         moves[size++] = m;
+    }
+
+    Move& get_next_move(int it) {
+        int best = it;
+        for (int j = it + 1; j < size; j++) {
+            if (evals[j] > evals[best]) best = j;
+        }
+        swap(moves[it], moves[best]);
+        swap(evals[it], evals[best]);
+        return moves[it];
     }
     Move* begin() { return moves; }
     Move *end() { return moves + size; }

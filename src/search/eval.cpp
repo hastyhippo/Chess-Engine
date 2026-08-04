@@ -144,6 +144,10 @@ static const int gamephaseInc[6]   = {  0,   1,   1,   2,    4, 0 };
 static int mg_table[2][6][64];
 static int eg_table[2][6][64];
 
+int psqt_mg(int colour, int type, int sq) {
+    return mg_table[colour][type][sq];
+}
+
 void init_pesto_tables() {
     for (int t = 0; t < 6; t++) {
         for (int sq = 0; sq < 64; sq++) {

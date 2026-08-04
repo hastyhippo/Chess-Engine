@@ -8,7 +8,9 @@ using namespace std::chrono;
 using Clock     = std::chrono::steady_clock;
 using TimePoint = Clock::time_point;
 
+constexpr int MAX_DEPTH = 256;
 constexpr int CHECKMATE = 8888888;
+constexpr int MATE_SCORE = CHECKMATE - MAX_DEPTH;  // scores above this = forced mate
 constexpr int OUTOFTIME = 5555555;
 constexpr int INF = 999999999;
 

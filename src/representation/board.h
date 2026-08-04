@@ -22,6 +22,7 @@ struct BoardState {
     uint16_t board_info;
     uint8_t enpassant_sq;
     uint8_t captured_piece;
+    uint8_t halfmove;
     uint64_t hash;
 };
 
@@ -30,6 +31,7 @@ class Board {
         bool white_turn;
         uint16_t move_number;
         uint64_t hash;  //  updated zobrist hash
+        uint8_t halfmove_clock;  // plies since last capture/pawn move
         
         // Board state members (previously in BoardState)
         uint16_t board_info;
@@ -87,6 +89,39 @@ class Board {
         void unmake_move(Move move);
         void printBoard();
 };
+
+int psqt_mg(int colour, int type, int sq);  // defined in eval.cpp
+
+inline void update_movelist_evals(Board &b, MoveList &ml) {
+    constexpr int piece_val[6] = {100, 300, 300, 500, 900, 0};
+    Colour side = b.isWhiteTurn() ? WHITE : BLACK;
+
+    for (int i = 0; i < ml.size; i++) {
+        Move &m = ml.moves[i];
+        int16_t score = 0;
+
+        uint8_t fromPiece = b.pieceOn(m.getFromSq());
+        uint8_t toPiece = b.pieceOn(m.getToSq());
+        uint8_t flag = m.getMoveFlag();
+
+        // Multiplying by 10 ensures that the moves are ordered by piece captured first
+        // then ordered by the capturing piece
+
+        if (flag == ENPASSANT) {
+            score += 10 * piece_val[PAWN] - piece_val[PAWN];  // victim not on to_sq
+        } else if (toPiece == EMPTY_SQ) {
+            score += psqt_mg(side, type_of(fromPiece), m.getToSq())
+                   - psqt_mg(side, type_of(fromPiece), m.getFromSq());
+        } else {
+            // MVV-LVA: 10x victim keeps every capture above every quiet
+            score += 10 * piece_val[type_of(toPiece)] - piece_val[type_of(fromPiece)];
+        }
+        if (m.isPromo()) score += piece_val[m.promoPiece()] - piece_val[PAWN];
+        if (flag == CASTLE) score += 50;
+
+        ml.evals[i] = (int16_t)score;
+    }
+}
 
 inline void Board::add_piece(uint8_t piece, uint8_t sq) {
     uint64_t pos = 1ULL << sq;

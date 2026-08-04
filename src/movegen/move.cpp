@@ -4,6 +4,7 @@
 constexpr uint16_t FROM_SQ_MASK = 0b00111111;      // Bits 0-5: 0b00111111
 constexpr uint16_t TO_SQ_MASK = 0b111111000000;       // Bits 6-11: 0b111111000000
 constexpr uint16_t MOVE_FLAG_MASK = 0b1111000000000000;  // Bits 12-15: 0b1111000000000000
+// flag values (move.h): 0 NORMAL | 1 DOUBLE_PUSH | 2-5 PROMOTION N/B/R/Q | 6 ENPASSANT | 7 CASTLE
 
 Move::Move(uint8_t from_sq, uint8_t to_sq, uint8_t move_flag) {
     this->move_data = (from_sq) | (to_sq << 6) | (move_flag << 12);
