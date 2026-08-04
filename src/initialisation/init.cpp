@@ -17,6 +17,7 @@ static void initialiseRayBetween();
 void init() {
     initialiseMoveGeneration();
     init_pesto_tables();
+    init_zobrist();
 }
 
 void initialiseMoveGeneration() {

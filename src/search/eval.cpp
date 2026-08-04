@@ -1,7 +1,7 @@
 #include "eval.h"
 #include <nmmintrin.h>
 
-bool use_pesto = false;
+bool use_pesto = true;
 
 static const int PIECE_VALUES[] = { 100, 320, 330, 500, 900, 0 };
 

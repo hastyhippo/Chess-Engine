@@ -10,8 +10,10 @@ Move::Move(uint8_t from_sq, uint8_t to_sq, uint8_t move_flag) {
 }
 
 string Move::getName() {
-    vector<string> flag_name = {"-", "DBL", "PR_K", "PR_B", "PR_R", "PR_Q", "ENP", "O--O"};
     string res = sq_to_name[getFromSq()] + sq_to_name[getToSq()];
+    if (isPromo()) {
+        res += "nbrq"[getMoveFlag() - PROMOTION_KNIGHT];
+    }
     return res;
 }
 

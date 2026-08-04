@@ -94,6 +94,8 @@ uint64_t divided_perft(Board &b, int depth, vector<string>& moves) {
 }
 
 uint64_t perft(Board &b, int depth) {
+    // debug builds verify the incremental hash against a full recompute
+    assert(b.getHash() == zobrist_hash(b));
     MoveList move_list = generate_moves<ALL_MOVES>(b);
     if (depth == 1) return move_list.size;
 
@@ -162,4 +164,42 @@ uint64_t get_rook_attacks(uint64_t occ, int sq) {
     occ     *= m_rook_tbl[sq].magic;
     occ     >>= m_rook_tbl[sq].shift;
     return m_rook_tbl[sq].ptr[occ];
+}
+
+zobrist_hashings zob_hash;
+
+uint64_t random_bitstring() {
+    // Fixed seed: hashes are identical every run, so repetition/TT bugs reproduce.
+    static mt19937_64 rng(0x9E3779B97F4A7C15ULL);
+    return rng();
+}
+
+void init_zobrist() {
+    for (int i = 0; i < N_SQUARES; i++) {
+        for(int j = 0; j < N_PIECE_TYPES * 2; j++) {
+            zob_hash.zobrist_bitstrings[i][j] = random_bitstring();
+        }
+    }
+    zob_hash.black_to_move = random_bitstring();
+    for (int i = 0; i < 16; i++) zob_hash.castling[i] = random_bitstring();
+    for (int f = 0; f < 8; f++) zob_hash.enpassant_file[f] = random_bitstring();
+}
+
+uint64_t zobrist_hash(Board &b) {
+    uint64_t h = 0;
+
+    uint64_t occ = b.get_occupancy();
+    while (occ) {
+        uint8_t sq = pop_lsb(&occ);
+        uint8_t p = b.pieceOn(sq);
+        h ^= zob_hash.zobrist_bitstrings[sq][type_of(p) * 2 + colour_of(p)];
+    }
+
+    if (!b.getWhiteTurn()) h ^= zob_hash.black_to_move;
+    h ^= zob_hash.castling[b.getCastlingRights()];
+
+    uint8_t enp_file = b.getEnpassantFile();
+    if (enp_file != NO_ENP) h ^= zob_hash.enpassant_file[enp_file];
+
+    return h;
 }

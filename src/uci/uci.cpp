@@ -105,7 +105,7 @@ void UCI::position(string cmd) {
         return;
     }
 
-    // Parse moves
+    // Parse moves (board records hashes itself for repetition detection)
     if (ind < tokens.size() && tokens[ind] == "moves") {
         ind++;
         while (ind < tokens.size()) {
@@ -122,7 +122,7 @@ void UCI::position(string cmd) {
 static int allocate_time_ms(int mytime, int myinc, int movetime) {
     if (movetime > 0) return movetime;   // GUI dictated an exact per-move time
     if (mytime <= 0) return 1000;        // no clock info: default to 1s per move
-    int t = mytime / 20 + myinc / 2;
+    int t = mytime / 50 + myinc / 2;
     t = min(t, mytime - 50);
     return max(t, 10);
 }

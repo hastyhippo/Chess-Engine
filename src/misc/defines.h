@@ -272,3 +272,16 @@ constexpr Colour operator~(Colour c) { return Colour(c ^ 1); }
 // SOLVER
 uint64_t get_rook_attacks(uint64_t occ, int sq);
 uint64_t get_bishop_attacks(uint64_t occ, int sq);
+
+// ZOBRIST
+struct zobrist_hashings{
+    uint64_t zobrist_bitstrings[N_SQUARES][N_PIECE_TYPES * 2];
+    uint64_t black_to_move;
+    uint64_t castling[16]; 
+    uint64_t enpassant_file[8];
+};
+
+extern zobrist_hashings zob_hash;
+
+void init_zobrist();
+uint64_t zobrist_hash(Board &b);

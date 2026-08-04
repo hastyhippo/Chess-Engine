@@ -22,12 +22,14 @@ struct BoardState {
     uint16_t board_info;
     uint8_t enpassant_sq;
     uint8_t captured_piece;
+    uint64_t hash;
 };
 
 class Board {
-    private: 
+    private:
         bool white_turn;
         uint16_t move_number;
+        uint64_t hash;  //  updated zobrist hash
         
         // Board state members (previously in BoardState)
         uint16_t board_info;
@@ -43,6 +45,8 @@ class Board {
         
     public:
         bool isWhiteTurn() const { return white_turn; }
+        uint64_t getHash() const { return hash; }
+        bool is_repetition();
 
         Board();
         Board(string FEN);

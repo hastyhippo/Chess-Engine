@@ -14,6 +14,7 @@ Board::Board() {
     for (int i = 0; i < 64; ++i) {
         this->pieces_arr[i] = EMPTY_SQ;
     }
+    hash = 0;
 }
 
 Board::Board(string FEN) {
@@ -83,6 +84,7 @@ Board::Board(string FEN) {
     new_board_info |= stoi(fen_split[4]) << 4;
     this->board_info = new_board_info;
     this->move_number = stoi(fen_split[5]);
+    hash = zobrist_hash(*this);
     saveState();
 }
 
@@ -183,14 +185,19 @@ bool Board::getWhiteTurn() {
 constexpr uint8_t NO_PIECE = 255;
 constexpr uint8_t NO_ENP_SQ = 255;
 
+static inline uint64_t zkey(uint8_t sq, uint8_t p) {
+    return zob_hash.zobrist_bitstrings[sq][type_of(p) * 2 + colour_of(p)];
+}
+
 void Board::make_move(Move m) {
     Colour side = white_turn ? WHITE : BLACK;
-    
+
     // Save old board_info BEFORE modifying it
     BoardState new_bs;
     new_bs.board_info = board_info;  // Save OLD board_info
     new_bs.enpassant_sq = NO_ENP_SQ;
     new_bs.captured_piece = NO_PIECE;
+    new_bs.hash = hash;
 
     uint8_t from_sq = m.getFromSq();
     uint8_t to_sq = m.getToSq();
@@ -199,47 +206,73 @@ void Board::make_move(Move m) {
 
     castling_rights &= ~(castling_mask[from_sq] | castling_mask[to_sq]);
 
+    // hash out old side/ep/castling state
+    hash ^= zob_hash.black_to_move;
+    hash ^= zob_hash.castling[getCastlingRights()];
+    if (getEnpassantFile() != NO_ENP) hash ^= zob_hash.enpassant_file[getEnpassantFile()];
+
+    uint8_t moving = pieceOn(from_sq);
     uint8_t piece_on_target = pieceOn(to_sq);
 
     if ((piece_on_target != EMPTY_SQ) && (move_flag != ENPASSANT)) {
         new_bs.captured_piece = piece_on_target;
+        hash ^= zkey(to_sq, piece_on_target);
         remove_piece(to_sq);
     }
 
+    hash ^= zkey(from_sq, moving) ^ zkey(to_sq, moving);
     move_piece(from_sq, to_sq);
 
     if (m.isPromo()) {
-        swap_piece(to_sq, piece(side, m.promoPiece()));
+        uint8_t promo = piece(side, m.promoPiece());
+        hash ^= zkey(to_sq, moving) ^ zkey(to_sq, promo);
+        swap_piece(to_sq, promo);
     }
 
     uint8_t enp_file = NO_ENP;
     if (move_flag == DOUBLE_PUSH) {
         enp_file = (to_sq % 8);
     } else if (move_flag == CASTLE) {
-        int castling_side = to_sq > from_sq ? KINGSIDE : QUEENSIDE;        
-        move_piece(castling_rook_from_sq[side][castling_side],  castling_rook_to_sq[side][castling_side]);
+        int castling_side = to_sq > from_sq ? KINGSIDE : QUEENSIDE;
+        uint8_t rf = castling_rook_from_sq[side][castling_side];
+        uint8_t rt = castling_rook_to_sq[side][castling_side];
+        hash ^= zkey(rf, pieceOn(rf)) ^ zkey(rt, pieceOn(rf));
+        move_piece(rf, rt);
 
     } else if (move_flag == ENPASSANT) {
         uint8_t capt_sq = (side == WHITE) ? (to_sq - 8) : (to_sq + 8);
         new_bs.enpassant_sq = capt_sq;
         uint8_t capt_piece = pieceOn(capt_sq);
         new_bs.captured_piece = capt_piece;
+        hash ^= zkey(capt_sq, capt_piece);
         remove_piece(capt_sq);
     }
-    
+
     // Update board_info with new castling rights and en passant
     uint16_t new_board_info = (castling_rights & CASTLING_BITMASK);
     new_board_info |= (enp_file << 10) & ENPASSANT_BITMASK;
     new_board_info |= (board_info & HALFMOVES_BITMASK);
     board_info = new_board_info;
 
+    // hash in new castling/ep state
+    hash ^= zob_hash.castling[castling_rights & CASTLING_BITMASK];
+    if (enp_file != NO_ENP) hash ^= zob_hash.enpassant_file[enp_file];
+
     state_history[state_history_size++] = new_bs;
     this->move_number++;
     this->white_turn = !this->white_turn;
 }
 
+bool Board::is_repetition() {
+    for (int i = state_history_size - 2; i >= 0; i -= 2) {
+        if (state_history[i].hash == hash) return true;
+    }
+    return false;
+}
+
 void Board::unmake_move(Move m) {
     BoardState prev_state = state_history[--state_history_size];
+    hash = prev_state.hash;
 
     this->move_number--;
     this->white_turn = !this->white_turn;
