@@ -32,8 +32,12 @@ int negamax(Board &b, int depth, TimePoint time_limit) {
     int value = - CHECKMATE - 1;
     for (Move m : possible_moves) {
         b.make_move(m);
-        value = max(value, -negamax(b, depth - 1, time_limit));
+        int res = negamax(b, depth - 1, time_limit);
+        value = max(value, -res);
         b.unmake_move(m);
+        if (res == OUTOFTIME) {
+            return OUTOFTIME
+        }
     }
     
     return value;
@@ -67,9 +71,10 @@ Move get_best_move(Board &b, int depth, int time_limit_ms) {
     
     for (Move m : possible_moves) {
         b.make_move(m);
-        int value = -negamax(b, depth - 1, time_limit);
+        int res = negamax(b, depth - 1, time_limit);
+        int value = -res;
         b.unmake_move(m);
-        if (value == OUTOFTIME) {
+        if (res == OUTOFTIME) {
             cout << "Search timed out!";
             return Move();
         }
@@ -84,4 +89,53 @@ Move get_best_move(Board &b, int depth, int time_limit_ms) {
 
     cout << "Evaluation: " << get_value_string(best_value, depth) << "\n";
     return best_move;
+}
+
+Move get_best_move(Board &b, int time_limit_ms) {
+    MoveList possible_moves = generate_moves<ALL_MOVES>(b);
+    if (possible_moves.size == 0) {
+        return Move();
+    }
+
+    auto start = Clock::now();
+    auto time_limit =  time_limit_ms > 0 
+        ? Clock::now() + std::chrono::milliseconds(time_limit_ms)
+        : TimePoint::max();
+    
+    Move best_move = possible_moves[0];
+    vector<pair<Move,int>> best_action(0);
+
+    int highest_full_depth = 0;
+    for (int depth = 0;; depth++) {
+        int best_value = INT32_MIN;
+        int value = 0;
+        for (Move m : possible_moves) {
+            b.make_move(m);
+            value = negamax(b, depth, time_limit);
+            if (value != OUTOFTIME) value = -value;
+            b.unmake_move(m);
+            
+            if (value == OUTOFTIME) {
+                break;
+            }
+            
+            if (value > best_value) {
+                best_value = value;
+                best_move = m;
+            }
+        }
+        if (value == OUTOFTIME) {
+            break;
+        }
+        highest_full_depth = max(depth, highest_full_depth);
+        best_action.push_back(make_pair(best_move, best_value));
+
+        cout << "info depth " << depth << " score cp " << best_value << "\n";
+    }
+
+    if (best_action.size() == 0) {
+        return Move();
+    } else {
+        return best_action.back().first;
+    }
 }

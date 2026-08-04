@@ -119,6 +119,16 @@ void UCI::position(string cmd) {
     if (debug) board.printBoard();
 }
 
+// Rough time allocation: spend ~1/20th of the remaining clock plus half the
+// increment, but never plan past the flag (small safety margin for overhead).
+static int allocate_time_ms(int mytime, int myinc, int movetime) {
+    if (movetime > 0) return movetime;   // GUI dictated an exact per-move time
+    if (mytime <= 0) return 1000;        // no clock info: default to 1s per move
+    int t = mytime / 20 + myinc / 2;
+    t = min(t, mytime - 50);
+    return max(t, 10);
+}
+
 void UCI::go(string cmd) {
     vector<string> tokens = splitString(cmd, ' ');
     
@@ -127,7 +137,7 @@ void UCI::go(string cmd) {
     int movetime = 0;
     int wtime = 0, btime = 0, winc = 0, binc = 0;
     
-    for (int i = 1; i < tokens.size(); i++) {
+    for (size_t i = 1; i < tokens.size(); i++) {
         if (tokens[i++] == "depth") {
             if (i >= tokens.size()) {
                 cout << "Error with tokens: depth";
@@ -171,7 +181,17 @@ void UCI::go(string cmd) {
         return;
     }
     
-    Move best_move = get_best_move(board, depth);
+    int mytime = board.isWhiteTurn() ? wtime : btime;
+    int myinc  = board.isWhiteTurn() ? winc : binc;
+
+    Move best_move;
+    if (infinite) {
+        best_move = get_best_move(board, 0);            // no limit: search until "stop"
+    } else if (depth > 0 && mytime == 0 && movetime == 0) {
+        best_move = get_best_move(board, depth, 0);     // fixed-depth mode (e.g. "go depth 6")
+    } else {
+        best_move = get_best_move(board, allocate_time_ms(mytime, myinc, movetime));
+    }
     cout << "bestmove " << move_to_uci(best_move) << "\n";
 }
 

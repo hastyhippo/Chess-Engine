@@ -66,11 +66,11 @@ int main(int argc, char** argv) {
                         tokens.pop_back();
                     } catch (...) {}
                 }
-                for (int j = 0; j < tokens.size(); j++)
+                for (size_t j = 0; j < tokens.size(); j++)
                     fen += (j ? " " : "") + tokens[j];
                 Board b(fen);
                 b.printBoard();
-                Move best = get_best_move(b, depth);
+                Move best = get_best_move(b, depth, 0);
                 cout << "bestmove " << best.getName() << "\n";
             }
             return 0;

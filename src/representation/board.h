@@ -41,7 +41,9 @@ class Board {
         void saveState();
         void restoreState(const BoardStateData& state);
         
-    public: 
+    public:
+        bool isWhiteTurn() const { return white_turn; }
+
         Board();
         Board(string FEN);
         
@@ -111,7 +113,6 @@ inline void Board::move_piece(uint8_t from_sq, uint8_t to_sq) {
 }
 
 inline void Board::swap_piece(uint8_t sq, uint8_t piece) {
-    uint8_t old_piece = pieceOn(sq);
     remove_piece(sq);
     add_piece(piece, sq);
 }

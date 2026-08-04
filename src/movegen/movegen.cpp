@@ -144,7 +144,6 @@ void addPinnedPawns(Board& b, MoveList& moves, uint64_t valid_sq, MovegenState &
     int forward = s.side == WHITE ? NORTH : SOUTH;
     uint64_t pinned_pawns = b.getPawnBitboard(s.side) & s.pinned_pieces;
     uint64_t pr_rank  = s.side == WHITE ? RANK_8 : RANK_1;
-    uint64_t pr2_rank = s.side == WHITE ? RANK_7 : RANK_2;
     uint64_t second_rank = s.side == WHITE ? RANK_3 : RANK_6;
 
     while (pinned_pawns) {

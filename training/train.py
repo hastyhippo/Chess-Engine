@@ -51,7 +51,7 @@ SAVE_EVERY = 10000
 
 CP_CONV = 400
 EVAL_WEIGHT = 0.9
-EWMA_BETA = 0.98
+EWMA_BETA = 0.99
 
 RUN_DESC = "Virtual Input Space, 8000 batch sizes"
 
@@ -169,7 +169,6 @@ def plot_run(run_id, losses, ewma_losses, path):
     fig.savefig(path, dpi=150)
     plt.close(fig)
 
-
 def store_run(model, optimiser, run_id, losses, ewma_losses, total_batches, elapsed):
     """Store one run's record, loss plot + final weights in training_runs/."""
     positions = total_batches * BATCH_SIZE
@@ -193,7 +192,6 @@ def store_run(model, optimiser, run_id, losses, ewma_losses, total_batches, elap
     }
     with open(os.path.join(TRAINING_RUNS_DIR, f"{run_id}.json"), "w") as f:
         json.dump(record, f, indent=2)
-
 
 def execute_training_loop(model, provider, optimiser, total_batches):
     start = time.time()
