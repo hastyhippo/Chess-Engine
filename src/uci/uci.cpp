@@ -84,26 +84,37 @@ void UCI::uci_new_game() {
 void UCI::position(string cmd) {
     vector<string> tokens = splitString(cmd, ' ');
     if (tokens.size() < 2) return;
-
-    int ind = 1;
+    
+    // Parse position
+    size_t ind = 1;
     if (tokens[ind] == "startpos") {
-        board = Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
         ind++;
+        board = Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     } else if (tokens[ind] == "fen") {
         ind++;
-        string fen = "";
-        for (int i = 0; i < 6 && ind < (int)tokens.size(); i++, ind++)
-            fen += (i > 0 ? " " : "") + tokens[ind];
-        board = Board(fen);
+        string new_fen = "";
+        for (int fen_tokens = 0; fen_tokens < 6; fen_tokens++) {
+            if (ind >= tokens.size()) {
+                cout << "FEN STRING invalid and not long enough";
+                return;
+            }
+            new_fen += tokens[ind++] + " ";
+        }
+        board = Board(new_fen);
     } else {
         return;
     }
 
-    if (ind < (int)tokens.size() && tokens[ind] == "moves") {
+    // Parse moves
+    if (ind < tokens.size() && tokens[ind] == "moves") {
         ind++;
-        while (ind < (int)tokens.size())
-            board.make_move(parse_uci_move(tokens[ind++]));
+        while (ind < tokens.size()) {
+            Move m = parse_uci_move(tokens[ind++]);
+            board.make_move(m);
+        }
     }
+
+    if (debug) board.printBoard();
 }
 
 void UCI::go(string cmd) {

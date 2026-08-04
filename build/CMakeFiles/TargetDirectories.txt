@@ -1,3 +1,0 @@
-C:/Users/natha/OneDrive/Documents/GitHub/ChessEngine/build/CMakeFiles/chess_engine.dir
-C:/Users/natha/OneDrive/Documents/GitHub/ChessEngine/build/CMakeFiles/ALL_BUILD.dir
-C:/Users/natha/OneDrive/Documents/GitHub/ChessEngine/build/CMakeFiles/ZERO_CHECK.dir

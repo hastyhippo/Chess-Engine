@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_RC_FLAGS "-DUNICODE -D_UNICODE")
 if(MSVC)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:CONSOLE")
-else()
+elseif(WIN32)
     # For MinGW
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-subsystem,console")
 endif()
@@ -23,6 +23,11 @@ endif()
 
 # Include directories
 include_directories(src)
+
+# Shims for <bits/stdc++.h> and x86 intrinsics on clang/libc++ (see compat/)
+if(NOT MSVC)
+    include_directories(SYSTEM compat)
+endif()
 
 # Find source files
 file(GLOB_RECURSE ENGINE_SOURCES CONFIGURE_DEPENDS "src/*.cpp")

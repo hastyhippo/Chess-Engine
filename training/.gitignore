@@ -1,0 +1,3 @@
+# Trained weights are build artifacts, not source
+weights/*
+!weights/.gitkeep
