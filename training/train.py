@@ -13,6 +13,8 @@ import os
 import sys
 import time
 
+import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
@@ -49,7 +51,11 @@ SAVE_EVERY = 10000
 
 CP_CONV = 400
 EVAL_WEIGHT = 0.9
+EWMA_BETA = 0.98
 
+RUN_DESC = "Virtual Input Space, 8000 batch sizes"
+
+DEVICE = "mps" if torch.backends.mps.is_available() else "cpu"
 
 class InputLayer(nn.Module):
     def __init__(self):
@@ -142,21 +148,48 @@ def append_virtual_indices(indices):
     v_indices = v_indices * (1 - empty_mask) + (-1) * (empty_mask)
     return torch.cat((indices, v_indices), dim = 1) 
 
-def store_run(model, optimiser, run_id, losses, total_batches, elapsed):
-    """Store one run's record + final weights as a file pair in training_runs/."""
+def plot_run(run_id, losses, ewma_losses, path):
+    """Plot raw loss (faint) with its EWMA (strong) and save as a PNG."""
+    its = list(losses.keys())
+    fig, ax = plt.subplots(figsize=(8, 4.5))
+    ax.plot(its, [losses[i] for i in its], color="#9ca3af", linewidth=1, alpha=0.5)
+    ax.plot(its, [ewma_losses[i] for i in its], color="#2563eb", linewidth=2)
+    # direct labels instead of a legend box
+    ax.annotate("raw", (its[-1], list(losses.values())[-1]), color="#6b7280", xytext=(6, 0),
+                textcoords="offset points", va="center", fontsize=9)
+    ax.annotate("EWMA", (its[-1], list(ewma_losses.values())[-1]), color="#2563eb", xytext=(6, 0),
+                textcoords="offset points", va="center", fontsize=9)
+    ax.set_xlabel("iteration")
+    ax.set_ylabel("MSE loss (win-prob space)")
+    ax.set_title(f"{run_id} — {RUN_DESC}", fontsize=10)
+    ax.grid(True, color="#e5e7eb", linewidth=0.5)
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.margins(x=0.02)
+    fig.tight_layout()
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
+
+
+def store_run(model, optimiser, run_id, losses, ewma_losses, total_batches, elapsed):
+    """Store one run's record, loss plot + final weights in training_runs/."""
     positions = total_batches * BATCH_SIZE
     os.makedirs(TRAINING_RUNS_DIR, exist_ok=True)
     weights_path = os.path.join(TRAINING_RUNS_DIR, f"{run_id}_weights.pt")
     torch.save({"model": model.state_dict(), "optim": optimiser.state_dict(), "step": model.it}, weights_path)
+    plot_run(run_id, losses, ewma_losses, os.path.join(TRAINING_RUNS_DIR, f"{run_id}_loss.png"))
     record = {
         "run_id": run_id,
+        "description": RUN_DESC,
         "learning_rate": optimiser.param_groups[0]["lr"],
         "batch_size": BATCH_SIZE,
+        "ewma_beta": EWMA_BETA,
         "total_batches": total_batches,
         "duration_seconds": round(elapsed, 2),
         "positions_per_second": round(positions / elapsed),
         "final_weights": weights_path,
         "losses": losses,
+        "device": DEVICE,
+        "losses_ewma": ewma_losses,
     }
     with open(os.path.join(TRAINING_RUNS_DIR, f"{run_id}.json"), "w") as f:
         json.dump(record, f, indent=2)
@@ -169,6 +202,8 @@ def execute_training_loop(model, provider, optimiser, total_batches):
     # One record per run, written to training_runs/ when the run finishes.
     run_id = time.strftime("run_%Y%m%d_%H%M%S")
     losses = {}
+    ewma_losses = {}
+    ewma = None
 
     for it, batch in zip(range(total_batches), provider):
         # provider has an __iter__/ __next__ dunder which provides samples when looped through
@@ -192,18 +227,22 @@ def execute_training_loop(model, provider, optimiser, total_batches):
         optimiser.step()
 
         losses[it] = loss.item()
+        ewma = loss.item() if ewma is None else EWMA_BETA * ewma + (1 - EWMA_BETA) * loss.item()
+        ewma_losses[it] = ewma
 
         if it % 100 == 0:
-            print(f"Loss: {loss.item()}")
+            print(f"Loss: {loss.item():.6f} | EWMA: {ewma:.6f}")
 
         if model.it % SAVE_EVERY == 0:
             path = os.path.join(WEIGHTS_DIR, f"nnue_step{model.it:07d}.pt")
             torch.save({"model": model.state_dict(), "optim": optimiser.state_dict(), "step": it}, path)
 
+    if DEVICE == "mps":
+        torch.mps.synchronize()  # GPU ops are async; wait before reading the clock
     elapsed = time.time() - start
     positions = total_batches * BATCH_SIZE
 
-    store_run(model, optimiser, run_id, losses, total_batches, elapsed)
+    store_run(model, optimiser, run_id, losses, ewma_losses, total_batches, elapsed)
 
     print(f"\nstreamed {positions:,} positions in {elapsed:.2f}s "
           f"({positions / elapsed:,.0f} positions/sec)")
@@ -215,12 +254,14 @@ def execute_training_loop(model, provider, optimiser, total_batches):
 def main():
     os.makedirs(WEIGHTS_DIR, exist_ok=True)
 
+    print(f"training on device: {DEVICE}")
     provider = SparseBatchProvider(
         FEATURE_SET, [DATA_FILE], BATCH_SIZE, cyclic=True,
         num_workers=NUM_WORKERS, config=DataloaderSkipConfig(),
+        device=DEVICE,
     )
 
-    model = NNUE()
+    model = NNUE().to(DEVICE)
     opt = torch.optim.Adam(model.parameters(), lr = 1e-3)
 
     while(True):
