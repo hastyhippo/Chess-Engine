@@ -11,6 +11,7 @@ TTEntry tt[TT_SIZE];
 // but they must not reach the transposition table.
 static TimePoint search_deadline = TimePoint::max();
 static bool search_timed_out = false;
+long long scouts = 0, researches = 0, first_move_best = 0, nodes_with_moves = 0;
 constexpr int QSEARCH_MAX_PLY = 64;
 
 // Quiet-move ordering. Captures are already ranked by MVV-LVA; these two give
@@ -105,16 +106,33 @@ int negamax(Board &b, int depth, int ply, int alpha, int beta, TimePoint time_li
     update_movelist_evals(b, possible_moves, tte->key == key ? tte->move : MOVE_NONE); // For move ordering
     order_quiets(possible_moves, ply);
     int it = 0;
+    int searched = 0;
     while (it < possible_moves.size) { // get it'th best move according to move ordering
         Move m = possible_moves.get_next_move(it++);
         PVLine child_pv;
         nnue_push(b, m);
         b.make_move(m);
-        int res = negamax(b, depth - 1, ply + 1, -beta, -alpha, time_limit, child_pv);
+
+        // Principal variation search. The ordering above means the first move is
+        // usually best, so the rest only need a null window to prove they are
+        // not. A scout that beats alpha is re-searched properly.
+        int res;
+        if (searched == 0) {
+            res = negamax(b, depth - 1, ply + 1, -beta, -alpha, time_limit, child_pv);
+        } else {
+            scouts++;
+            res = negamax(b, depth - 1, ply + 1, -alpha - 1, -alpha, time_limit, child_pv);
+            if (res != OUTOFTIME && -res > alpha && -res < beta) {
+                researches++;
+                res = negamax(b, depth - 1, ply + 1, -beta, -alpha, time_limit, child_pv);
+            }
+        }
+
         b.unmake_move(m);
         nnue_pop();
 
         if (res == OUTOFTIME) return OUTOFTIME;
+        searched++;
         int score = -res;
 
         if (score > value) {
@@ -127,6 +145,8 @@ int negamax(Board &b, int depth, int ply, int alpha, int beta, TimePoint time_li
         alpha = max(alpha, score);
         if (alpha >= beta) {
             if (is_quiet(b, m)) record_cutoff(b, m, depth, ply);
+            nodes_with_moves++;
+            if (searched == 1) first_move_best++;   // cutoff on the first move tried
             break;
         }
     }
@@ -285,6 +305,7 @@ Move get_best_move(Board &b, int depth, int time_limit_ms) {
     search_deadline = time_limit;
     search_timed_out = false;
     clear_ordering_tables();
+    scouts = researches = first_move_best = nodes_with_moves = 0;
 
     Move best_move = root_moves.moves[0];   // always a legal move to fall back on
     nodes_searched = 0;
@@ -345,6 +366,10 @@ Move get_best_move(Board &b, int depth, int time_limit_ms) {
         for (int i = 0; i < pv.length; i++)
             cout << " " << pv.moves[i].getName();
         cout << "\n";
+        if (nodes_with_moves)
+            cout << "info string ordering: cutoff-nodes " << nodes_with_moves
+                 << " first-move " << first_move_best
+                 << " | scouts " << scouts << " researches " << researches << "\n";
         cout.flush();
         
         if (best_value >= MATE_SCORE) {
