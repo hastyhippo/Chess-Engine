@@ -286,6 +286,16 @@ void nnue_push(Board &b, Move m) {
     stack_[ply].key = 0;
 }
 
+void nnue_push_null() {
+    // A null move alters nothing the features depend on, so the dirty list is
+    // empty and ensure() replays it as a no-op.
+    if (++ply >= MAX_ACC_PLY) return;
+    stack_[ply].dirty.n = 0;
+    stack_[ply].dirty.king_moved[WHITE] = stack_[ply].dirty.king_moved[BLACK] = false;
+    stack_[ply].computed[0] = stack_[ply].computed[1] = false;
+    stack_[ply].key = 0;
+}
+
 void nnue_pop() {
     if (ply > 0) ply--;
 }

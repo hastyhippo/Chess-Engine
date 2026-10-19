@@ -18,10 +18,12 @@ constexpr int QSEARCH_MAX_PLY = 64;
 // the quiets an order, which is what makes the rest of the pruning work.
 //   killers: quiets that caused a beta cutoff at this same ply elsewhere
 //   history: how often a (side, piece, destination) has caused a cutoff
+static bool from_null[MAX_DEPTH];   // this ply was reached by a null move
 static Move killers[MAX_DEPTH][2];
 static int history[64][64];   // [from][to]
 
 static void clear_ordering_tables() {
+    memset(from_null, 0, sizeof from_null);
     memset(killers, 0, sizeof killers);
     memset(history, 0, sizeof history);
 }
@@ -80,10 +82,34 @@ int negamax(Board &b, int depth, int ply, int alpha, int beta, TimePoint time_li
     beta  = min(beta,    CHECKMATE + depth - 1);
     if (alpha >= beta) return alpha;
 
+    const bool in_check = b.in_check();
+    const Colour stm = b.isWhiteTurn() ? WHITE : BLACK;
+
+    // Null move pruning: hand the opponent a free move and search shallow. If
+    // the position still beats beta, the real move will too. Skipped in check,
+    // after another null, and without non-pawn material (zugzwang territory,
+    // where passing is genuinely better than any legal move).
+    if (!in_check && depth >= 3 && ply > 0 && ply < MAX_DEPTH && !from_null[ply]
+        && beta < MATE_SCORE && b.has_non_pawn_material(stm)) {
+        const int R = 2 + depth / 6;
+        PVLine null_pv;
+        from_null[ply + 1] = true;
+        nnue_push_null();
+        b.make_null_move();
+        int res = negamax(b, max(depth - 1 - R, 0), ply + 1, -beta, -beta + 1,
+                          time_limit, null_pv);
+        b.unmake_null_move();
+        nnue_pop();
+        from_null[ply + 1] = false;
+
+        if (res == OUTOFTIME) return OUTOFTIME;
+        if (-res >= beta) return beta;
+    }
+
     MoveList possible_moves = generate_moves<ALL_MOVES>(b);
 
     if (possible_moves.size == 0) {
-        return b.in_check() ? -(CHECKMATE + depth) : 0;
+        return in_check ? -(CHECKMATE + depth) : 0;
     }
 
     uint64_t key = b.getHash();

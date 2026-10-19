@@ -87,6 +87,10 @@ class Board {
         bool getWhiteTurn();
         void make_move(Move move);
         void unmake_move(Move move);
+        // Pass the turn without moving: used by null move pruning.
+        void make_null_move();
+        void unmake_null_move();
+        bool has_non_pawn_material(Colour side);
         void printBoard();
 };
 

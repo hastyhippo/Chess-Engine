@@ -390,3 +390,38 @@ bool Board::in_check() {
     
     return attackers_to(king_sq) > 0;
 }
+void Board::make_null_move() {
+    BoardState new_bs;
+    new_bs.board_info = board_info;
+    new_bs.enpassant_sq = NO_ENP_SQ;
+    new_bs.captured_piece = NO_PIECE;
+    new_bs.halfmove = halfmove_clock;
+    new_bs.hash = hash;
+
+    hash ^= zob_hash.black_to_move;
+    if (getEnpassantFile() != NO_ENP) hash ^= zob_hash.enpassant_file[getEnpassantFile()];
+    // castling rights are untouched, so their hash contribution cancels
+    board_info = (board_info & ~ENPASSANT_BITMASK) | ((NO_ENP << 10) & ENPASSANT_BITMASK);
+
+    // Zeroing this closes the repetition window: the side-to-move parity inside
+    // a null subtree no longer matches the history, so it must not be scanned.
+    halfmove_clock = 0;
+
+    state_history[state_history_size++] = new_bs;
+    move_number++;
+    white_turn = !white_turn;
+}
+
+void Board::unmake_null_move() {
+    BoardState prev = state_history[--state_history_size];
+    hash = prev.hash;
+    halfmove_clock = prev.halfmove;
+    board_info = prev.board_info;
+    move_number--;
+    white_turn = !white_turn;
+}
+
+bool Board::has_non_pawn_material(Colour side) {
+    return (getColourPieces(side)
+            & ~(piece_bb[PAWN] | piece_bb[KING])) != 0;
+}
