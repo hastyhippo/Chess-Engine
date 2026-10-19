@@ -6,30 +6,23 @@ int qnodes_searched = 0;
 
 TTEntry tt[TT_SIZE];
 
-// qsearch has no time argument, so the deadline is shared. Once it trips the
-// whole iteration is discarded at the root, so partial results are harmless --
-// but they must not reach the transposition table.
+constexpr int QSEARCH_MAX_PLY = 64;
+constexpr int DELTA_MARGIN = 400;   // a smaller margin pruned mating sacrifices
+
+// qsearch takes no time argument, so the deadline is shared.
 static TimePoint search_deadline = TimePoint::max();
 static bool search_timed_out = false;
-long long scouts = 0, researches = 0, lmr_researches = 0, first_move_best = 0, nodes_with_moves = 0;
-constexpr int QSEARCH_MAX_PLY = 64;
 
-// Quiet-move ordering. Captures are already ranked by MVV-LVA; these two give
-// the quiets an order, which is what makes the rest of the pruning work.
-//   killers: quiets that caused a beta cutoff at this same ply elsewhere
-//   history: how often a (side, piece, destination) has caused a cutoff
-static bool from_null[MAX_DEPTH];   // this ply was reached by a null move
+static bool from_null[MAX_DEPTH];        // this ply was reached by a null move
+static Move killers[MAX_DEPTH][2];       // quiets that beat beta at this ply
+static int history[64][64];              // [from][to] cutoff counts
+static int lmr_table[MAX_DEPTH][64];     // [depth][moves searched] -> reduction
 
-// Late move reductions. Moves far down the ordering are probably bad, so they
-// are searched shallow first and only re-searched if they prove otherwise.
-static int lmr_table[MAX_DEPTH][64];
 static void init_lmr() {
     for (int d = 1; d < MAX_DEPTH; d++)
         for (int m = 1; m < 64; m++)
             lmr_table[d][m] = (int)(0.75 + log((double)d) * log((double)m) / 2.25);
 }
-static Move killers[MAX_DEPTH][2];
-static int history[64][64];   // [from][to]
 
 static void clear_ordering_tables() {
     static bool lmr_ready = false;
@@ -44,20 +37,20 @@ static inline bool is_quiet(Board &b, Move m) {
         && m.getMoveFlag() != ENPASSANT && !m.isPromo();
 }
 
-static void record_cutoff(Board &b, Move m, int depth, int ply) {
+static void record_cutoff(Move m, int depth, int ply) {
     if (ply < MAX_DEPTH && !(killers[ply][0] == m)) {
         killers[ply][1] = killers[ply][0];
         killers[ply][0] = m;
     }
     int &h = history[m.getFromSq()][m.getToSq()];
     h += depth * depth;
-    if (h > ORDER_HIST_MAX) {        // rare: halve everything, ordering survives
+    if (h > ORDER_HIST_MAX) {   // halve the table; relative order survives
         for (int f = 0; f < 64; f++)
             for (int t = 0; t < 64; t++) history[f][t] /= 2;
     }
 }
 
-// Rank the quiets update_movelist_evals left at 0: killers first, then history.
+// update_movelist_evals leaves quiets at 0; rank them killers-first, then history.
 static void order_quiets(MoveList &ml, int ply) {
     for (int i = 0; i < ml.size; i++) {
         if (ml.evals[i] != 0) continue;   // TT move and tacticals keep their score
@@ -67,39 +60,62 @@ static void order_quiets(MoveList &ml, int ply) {
         else ml.evals[i] = history[m.getFromSq()][m.getToSq()];
     }
 }
+// Search one child. The first move gets a full window; later moves get a null
+// window, reduced if they are quiet and late, and are re-searched upward only
+// when they beat alpha.
+static int search_child(Board &b, int depth, int ply, int alpha, int beta,
+                        int searched, bool can_reduce, TimePoint time_limit,
+                        PVLine &child_pv) {
+    if (searched == 0)
+        return negamax(b, depth - 1, ply + 1, -beta, -alpha, time_limit, child_pv);
+
+    const int r = can_reduce
+        ? min(lmr_table[min(depth, MAX_DEPTH - 1)][min(searched, 63)], depth - 2)
+        : 0;
+
+    int res = negamax(b, depth - 1 - r, ply + 1, -alpha - 1, -alpha, time_limit, child_pv);
+    if (r > 0 && res != OUTOFTIME && -res > alpha)        // the reduction was wrong
+        res = negamax(b, depth - 1, ply + 1, -alpha - 1, -alpha, time_limit, child_pv);
+    if (res != OUTOFTIME && -res > alpha && -res < beta)  // inside the window: need an exact score
+        res = negamax(b, depth - 1, ply + 1, -beta, -alpha, time_limit, child_pv);
+    return res;
+}
+
 int negamax(Board &b, int depth, int ply, int alpha, int beta, TimePoint time_limit, PVLine &pv) {
     pv.length = 0;
-    if (nodes_searched++ % 2048 == 0) {
-        if (Clock::now() >= time_limit) {
-            search_timed_out = true;
-            return OUTOFTIME;
-        }
+    if (nodes_searched++ % 2048 == 0 && Clock::now() >= time_limit) {
+        search_timed_out = true;
+        return OUTOFTIME;
     }
 
-    // repetition or 50-move rule scores as a draw
-    if (b.is_repetition() || b.getHalfMoveClock() >= 100) {
-        return 0;
-    }
+    if (b.is_repetition() || b.getHalfMoveClock() >= 100) return 0;   // draw
+    if (depth == 0) return qsearch(b, alpha, beta, 0);
 
-    if (depth == 0) {
-        return qsearch(b, alpha, beta, 0);
-    }
-
-    // Mate distance pruning. Scores here use remaining depth, so the worst case
-    // is being mated now and the best is mating on the next ply. Clamping to
-    // that range lets a mate already proven nearer the root cut this node off,
-    // and stops the search proving a longer mate than one it already has.
+    // Mate distance pruning: the worst case here is being mated now, the best
+    // is mating next ply. A shorter mate found nearer the root cuts this off.
     alpha = max(alpha, -(CHECKMATE + depth));
     beta  = min(beta,    CHECKMATE + depth - 1);
     if (alpha >= beta) return alpha;
 
+    uint64_t key = b.getHash();
+    TTEntry* tte = probe(key);
+    if (tte->key == key && tte->depth >= depth) {
+        // Mate scores are stored relative to the node, so re-anchor them here.
+        int value = tte->value;
+        if (value > MATE_SCORE) value += depth;
+        if (value < -MATE_SCORE) value -= depth;
+
+        if (tte->bound == EXACT) return value;
+        if (tte->bound == LOWER && value >= beta) return value;   // already failed high
+        if (tte->bound == UPPER && value <= alpha) return value;  // already failed low
+    }
+
     const bool in_check = b.in_check();
     const Colour stm = b.isWhiteTurn() ? WHITE : BLACK;
 
-    // Null move pruning: hand the opponent a free move and search shallow. If
-    // the position still beats beta, the real move will too. Skipped in check,
-    // after another null, and without non-pawn material (zugzwang territory,
-    // where passing is genuinely better than any legal move).
+    // Null move pruning: give the opponent a free move and search shallow; if
+    // that still beats beta, a real move will too. Needs non-pawn material --
+    // in a pawn endgame passing can genuinely beat every legal move.
     if (!in_check && depth >= 3 && ply > 0 && ply < MAX_DEPTH && !from_null[ply]
         && beta < MATE_SCORE && b.has_non_pawn_material(stm)) {
         const int R = 2 + depth / 6;
@@ -118,71 +134,32 @@ int negamax(Board &b, int depth, int ply, int alpha, int beta, TimePoint time_li
     }
 
     MoveList possible_moves = generate_moves<ALL_MOVES>(b);
-
-    if (possible_moves.size == 0) {
-        return in_check ? -(CHECKMATE + depth) : 0;
-    }
-
-    uint64_t key = b.getHash();
-    TTEntry* tte = probe(key);
-    if (tte->key == key && tte->depth >= depth) {
-        int value = tte->value;
-        if (value > MATE_SCORE) value = value + depth;
-        if (value < -MATE_SCORE) value = value - depth;
-        if (tte->bound == EXACT) return value;
-        // tree is too good to be true, it crashed because it found a move value greater than beta 
-        //   will crash again if ran 
-        if (tte->bound == LOWER && value >= beta) return value;
-        // we know that every value searched in this tree is worse than alpha (didn't improve alpha_original)
-        //   will not find anything again if failed like this previously
-        if (tte->bound == UPPER && value <= alpha) return value;
-    } 
+    if (possible_moves.size == 0) return in_check ? -(CHECKMATE + depth) : 0;
 
     int alpha_orig = alpha;
     int value = -CHECKMATE - 1;
-    update_movelist_evals(b, possible_moves, tte->key == key ? tte->move : MOVE_NONE); // For move ordering
+    update_movelist_evals(b, possible_moves, tte->key == key ? tte->move : MOVE_NONE);
     order_quiets(possible_moves, ply);
-    int it = 0;
-    int searched = 0;
-    while (it < possible_moves.size) { // get it'th best move according to move ordering
+
+    int it = 0, searched = 0;
+    while (it < possible_moves.size) {
         Move m = possible_moves.get_next_move(it++);
-        PVLine child_pv;
         const bool quiet = is_quiet(b, m);   // must be read before the move is made
+
+        PVLine child_pv;
         nnue_push(b, m);
         b.make_move(m);
-        const bool gives_check = b.in_check();
-
-        // Principal variation search with late move reductions. The first move
-        // gets a full window; the rest get a null window, and quiet moves late
-        // in the ordering also get reduced depth. Anything that beats alpha is
-        // re-searched at full depth, then with the full window.
-        int res;
-        if (searched == 0) {
-            res = negamax(b, depth - 1, ply + 1, -beta, -alpha, time_limit, child_pv);
-        } else {
-            int r = 0;
-            if (depth >= 3 && searched >= 3 && quiet && !in_check && !gives_check)
-                r = min(lmr_table[min(depth, MAX_DEPTH - 1)][min(searched, 63)], depth - 2);
-
-            scouts++;
-            res = negamax(b, depth - 1 - r, ply + 1, -alpha - 1, -alpha, time_limit, child_pv);
-            if (r > 0 && res != OUTOFTIME && -res > alpha) {
-                lmr_researches++;
-                res = negamax(b, depth - 1, ply + 1, -alpha - 1, -alpha, time_limit, child_pv);
-            }
-            if (res != OUTOFTIME && -res > alpha && -res < beta) {
-                researches++;
-                res = negamax(b, depth - 1, ply + 1, -beta, -alpha, time_limit, child_pv);
-            }
-        }
-
+        const bool can_reduce = quiet && depth >= 3 && searched >= 3
+                             && !in_check && !b.in_check();
+        int res = search_child(b, depth, ply, alpha, beta, searched,
+                               can_reduce, time_limit, child_pv);
         b.unmake_move(m);
         nnue_pop();
 
         if (res == OUTOFTIME) return OUTOFTIME;
         searched++;
-        int score = -res;
 
+        const int score = -res;
         if (score > value) {
             value = score;
             pv.moves[0] = m;
@@ -192,19 +169,17 @@ int negamax(Board &b, int depth, int ply, int alpha, int beta, TimePoint time_li
 
         alpha = max(alpha, score);
         if (alpha >= beta) {
-            if (is_quiet(b, m)) record_cutoff(b, m, depth, ply);
-            nodes_with_moves++;
-            if (searched == 1) first_move_best++;   // cutoff on the first move tried
+            if (quiet) record_cutoff(m, depth, ply);
             break;
         }
     }
 
-    // update the big tt
-    int tt_value = value;
-    if (value > MATE_SCORE)         tt_value -= depth;
-    else if (value < -MATE_SCORE)   tt_value += depth;
-
     if (search_timed_out) return value;   // partial result: do not poison the TT
+
+    // Store mate scores relative to this node so any depth can re-anchor them.
+    int tt_value = value;
+    if (value > MATE_SCORE)       tt_value -= depth;
+    else if (value < -MATE_SCORE) tt_value += depth;
 
     tte->key   = key;
     tte->value = tt_value;
@@ -298,6 +273,14 @@ int qsearch(Board &b, int alpha, int beta, int qdepth) {
         Move m = moves.get_next_move(it++);
 
         if (!check) {
+            // Delta pruning: if even winning the victim outright falls short of
+            // alpha, the capture cannot help.
+            uint8_t victim = b.pieceOn(m.getToSq());
+            int gain = m.getMoveFlag() == ENPASSANT ? PIECE_VALUES[PAWN]
+                     : victim != EMPTY_SQ          ? PIECE_VALUES[type_of(victim)] : 0;
+            if (m.isPromo()) gain += PIECE_VALUES[m.promoPiece()] - PIECE_VALUES[PAWN];
+            if (static_eval + gain + DELTA_MARGIN < alpha) continue;
+
             if (SEE(b, m) < 0) continue;
         }
 
@@ -353,7 +336,7 @@ Move get_best_move(Board &b, int depth, int time_limit_ms) {
     search_deadline = time_limit;
     search_timed_out = false;
     clear_ordering_tables();
-    scouts = researches = lmr_researches = first_move_best = nodes_with_moves = 0;
+    qnodes_searched = 0;
 
     Move best_move = root_moves.moves[0];   // always a legal move to fall back on
     nodes_searched = 0;
@@ -414,11 +397,6 @@ Move get_best_move(Board &b, int depth, int time_limit_ms) {
         for (int i = 0; i < pv.length; i++)
             cout << " " << pv.moves[i].getName();
         cout << "\n";
-        if (nodes_with_moves)
-            cout << "info string ordering: cutoff-nodes " << nodes_with_moves
-                 << " first-move " << first_move_best
-                 << " | scouts " << scouts << " researches " << researches
-                 << " lmr-researches " << lmr_researches << "\n";
         cout.flush();
         
         if (best_value >= MATE_SCORE) {

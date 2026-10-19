@@ -33,7 +33,6 @@ struct TTEntry {
 };
 
 extern TTEntry tt[TT_SIZE];
-extern long long scouts, researches, lmr_researches, first_move_best, nodes_with_moves;
 
 int negamax(Board &b, int depth, int ply, int alpha, int beta, TimePoint time_limit, PVLine &pv);
 int qsearch(Board &b, int alpha, int beta, int qdepth);
