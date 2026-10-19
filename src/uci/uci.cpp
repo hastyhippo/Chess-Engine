@@ -1,4 +1,5 @@
 #include "uci.h"
+#include "../search/nnue.h"
 
 UCI::UCI() {
     board = Board();
@@ -63,6 +64,8 @@ void UCI::uci() {
     cout << "option name Eval type combo default " << eval_mode_name(EVAL_PESTO);
     for (int i = 0; i < EVAL_MODE_COUNT; i++) cout << " var " << eval_mode_name((EvalMode)i);
     cout << "\n";
+    cout << "option name EvalFile type string default "
+         << (nnue_ready() ? nnue_file() : "nnue.bin") << "\n";
     cout << "uciok\n";
 }
 
@@ -79,7 +82,11 @@ void UCI::set_option(string cmd) {
         if (tokens[i] == "name" && id.empty()) id = tokens[i + 1];
         if (tokens[i] == "value") value = tokens[i + 1];
     }
-    if (id == "Eval") {
+    if (id == "EvalFile") {
+        // Re-join the tail: splitString keeps empty tokens and paths may contain spaces.
+        size_t pos = cmd.find(" value ");
+        if (pos != string::npos) nnue_load(cmd.substr(pos + 7));
+    } else if (id == "Eval") {
         if (set_eval_mode(value)) cout << "info string eval " << eval_mode_name() << "\n";
         else cout << "info string unknown Eval value: " << value << "\n";
     }

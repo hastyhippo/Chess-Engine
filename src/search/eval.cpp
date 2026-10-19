@@ -1,4 +1,5 @@
 #include "eval.h"
+#include "nnue.h"
 #include <nmmintrin.h>
 
 EvalMode eval_mode = EVAL_NNUE;
@@ -201,7 +202,17 @@ static int evaluate_material(Board &b) {
 }
 
 static int evaluate_nnue(Board &b) {
-    return 0;
+    // A missing net must not silently score every position 0 -- that looks like
+    // a drawn game rather than a broken engine. Play PeSTO instead.
+    if (!nnue_ready()) {
+        static bool warned = false;
+        if (!warned) {
+            warned = true;
+            cout << "info string nnue: no net loaded, falling back to pesto\n" << flush;
+        }
+        return evaluate_pesto(b);
+    }
+    return nnue_evaluate(b);
 }
 
 static const char *EVAL_MODE_NAMES[EVAL_MODE_COUNT] = { "pesto", "material", "NNUE" };

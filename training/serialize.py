@@ -97,5 +97,5 @@ if __name__ == "__main__":
     ckpt = sys.argv[1]
     if not os.path.isabs(ckpt) and not os.path.exists(ckpt):
         ckpt = os.path.join(T.WEIGHTS_DIR, ckpt)   # train.py chdir's on import
-    out = sys.argv[2] if len(sys.argv) > 2 else os.path.join(T.ROOT, "nnue.bin")
+    out = sys.argv[2] if len(sys.argv) > 2 else os.path.join(T.ROOT, os.pardir, "nnue.bin")
     serialize(ckpt, out)

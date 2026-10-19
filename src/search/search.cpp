@@ -1,4 +1,5 @@
 #include "search.h"
+#include "nnue.h"
 #include "eval.h"
 int nodes_searched = 0;
 int qnodes_searched = 0;
@@ -21,6 +22,14 @@ int negamax(Board &b, int depth, int alpha, int beta, TimePoint time_limit, PVLi
     if (depth == 0) {
         return qsearch(b, alpha, beta, 0);
     }
+
+    // Mate distance pruning. Scores here use remaining depth, so the worst case
+    // is being mated now and the best is mating on the next ply. Clamping to
+    // that range lets a mate already proven nearer the root cut this node off,
+    // and stops the search proving a longer mate than one it already has.
+    alpha = max(alpha, -(CHECKMATE + depth));
+    beta  = min(beta,    CHECKMATE + depth - 1);
+    if (alpha >= beta) return alpha;
 
     MoveList possible_moves = generate_moves<ALL_MOVES>(b);
 
@@ -50,9 +59,11 @@ int negamax(Board &b, int depth, int alpha, int beta, TimePoint time_limit, PVLi
     while (it < possible_moves.size) { // get it'th best move according to move ordering
         Move m = possible_moves.get_next_move(it++);
         PVLine child_pv;
+        nnue_push(b, m);
         b.make_move(m);
         int res = negamax(b, depth - 1, -beta, -alpha, time_limit, child_pv);
         b.unmake_move(m);
+        nnue_pop();
 
         if (res == OUTOFTIME) return OUTOFTIME;
         int score = -res;
@@ -168,9 +179,11 @@ int qsearch(Board &b, int alpha, int beta, int qdepth) {
             if (SEE(b, m) < 0) continue;
         }
 
+        nnue_push(b, m);
         b.make_move(m);
         int score = -qsearch(b, -beta, -alpha, qdepth + 1);
         b.unmake_move(m);
+        nnue_pop();
 
         if (score >= beta) return beta;
         if (score > alpha) alpha = score;
@@ -196,6 +209,15 @@ TTEntry* probe(uint64_t key) {
 
 Move get_best_move(Board &b, int depth, int time_limit_ms) {
     if (generate_moves<ALL_MOVES>(b).size == 0) return Move();
+    if (eval_mode == EVAL_NNUE && !nnue_ready()) {
+        cerr << "\nFATAL: Eval=NNUE but no net is loaded.\n"
+             << "  Build one with:  cd training && .venv/bin/python serialize.py <ckpt.pt>\n"
+             << "  Or point at one: setoption name EvalFile value <path>\n"
+             << "  Or switch eval:  setoption name Eval value pesto\n" << flush;
+        cout << "info string FATAL: Eval=NNUE but no net loaded; refusing to search\n" << flush;
+        exit(1);
+    }
+    nnue_reset();   // the board moved outside the search (UCI position, new game)
 
     auto time_limit = time_limit_ms > 0
         ? Clock::now() + std::chrono::milliseconds(time_limit_ms - 50)
@@ -220,9 +242,11 @@ Move get_best_move(Board &b, int depth, int time_limit_ms) {
         while (it < moves.size) {
             Move m = moves.get_next_move(it++);
             PVLine child_pv;
+            nnue_push(b, m);
             b.make_move(m);
             int res = negamax(b, d - 1, -INF, INF, time_limit, child_pv);
             b.unmake_move(m);
+            nnue_pop();
 
             if (res == OUTOFTIME) { out_of_time = true; break; }
             int value = -res;

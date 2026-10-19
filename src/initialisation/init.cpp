@@ -1,4 +1,5 @@
 #include "init.h"
+#include "../search/nnue.h"
 #include "../search/eval.h"
 #include <cstdint>
 
@@ -18,6 +19,9 @@ void init() {
     initialiseMoveGeneration();
     init_pesto_tables();
     init_zobrist();
+#ifdef NNUE_DEFAULT_FILE
+    nnue_load(NNUE_DEFAULT_FILE);   // missing net is not fatal; EvalFile can set it
+#endif
 }
 
 void initialiseMoveGeneration() {

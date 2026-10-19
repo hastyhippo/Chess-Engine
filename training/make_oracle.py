@@ -66,10 +66,15 @@ def forward_int(h, w, white_idx, black_idx, stm_white):
 
 
 def to_cp(h, out32):
-    """int32 -> centipawns, rounding rather than truncating."""
+    """int32 -> centipawns, round half away from zero.
+
+    Mirrors C++ `(num + sign*den/2) / den`, whose `/` truncates toward zero.
+    Python's `//` floors instead, which is off by one on every negative eval.
+    """
     den = h["s_out"] * 127
     num = out32 * h["n2s"]
-    return (num + (den // 2 if num >= 0 else -(den // 2))) // den
+    q = (abs(num) + den // 2) // den
+    return q if num >= 0 else -q
 
 
 def main(bin_path, count):
@@ -124,5 +129,5 @@ def main(bin_path, count):
 
 
 if __name__ == "__main__":
-    path = sys.argv[1] if len(sys.argv) > 1 else os.path.join(T.ROOT, "nnue.bin")
+    path = sys.argv[1] if len(sys.argv) > 1 else os.path.join(T.ROOT, os.pardir, "nnue.bin")
     main(path, int(sys.argv[2]) if len(sys.argv) > 2 else 500)

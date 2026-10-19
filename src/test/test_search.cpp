@@ -27,7 +27,7 @@ DOCTEST_TEST_SUITE("search correctness") {
             int search_depth = t.mate_in * 2 - 1;
 
             auto start = chrono::high_resolution_clock::now();
-            Move best = get_best_move(b, search_depth);
+            Move best = get_best_move(b, search_depth, 0);  // 3-arg: depth, no time limit
             double ms = chrono::duration<double, milli>(
                 chrono::high_resolution_clock::now() - start).count();
 

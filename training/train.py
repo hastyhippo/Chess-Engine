@@ -304,8 +304,7 @@ def visualize_position(white_indices, black_indices, us, outcome, score):
 
     for b in range(us.shape[0]):
         # Decode each POV into physical-board terms (white's frame).
-        # HalfKP::orient() in halfkp-extractor.patch flips black both
-        # vertically and horizontally, i.e. a 180 degree rotation: sq ^ 63.
+        # orient() for black is a vertical flip, sq ^ 56.
         white_set, black_set = set(), set()
         wksq = bksq = None
         for idx in white_indices[b]:
@@ -318,8 +317,8 @@ def visualize_position(white_indices, black_indices, us, outcome, score):
             if idx.item() < 0:
                 continue
             ksq, sq, ptype, theirs = decode(idx.item())
-            black_set.add((sq ^ 63, ptype, "white" if theirs else "black"))
-            bksq = ksq ^ 63
+            black_set.add((sq ^ 56, ptype, "white" if theirs else "black"))
+            bksq = ksq ^ 56
 
         print(f"\nposition {b}: side to move: {'white' if us[b].item() else 'black'} | "
               f"score {score[b].item():+.0f} cp | outcome {outcome[b].item()}")

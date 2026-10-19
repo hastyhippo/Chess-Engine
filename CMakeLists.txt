@@ -38,4 +38,5 @@ add_executable(chess_engine ${ENGINE_SOURCES})
 
 # Tests read fixtures from the source tree, not the build dir
 target_compile_definitions(chess_engine PRIVATE
-    TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/src/test")
+    TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/src/test"
+    NNUE_DEFAULT_FILE="${CMAKE_CURRENT_SOURCE_DIR}/nnue.bin")

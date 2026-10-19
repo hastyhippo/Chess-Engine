@@ -2,6 +2,8 @@
 #include "../representation/board.h"
 #include "../initialisation/init.h"
 #include "../search/eval.h"
+#include "../search/nnue.h"
+#include "../movegen/movegen.h"
 #include <fstream>
 
 #ifndef TEST_DATA_DIR
@@ -37,7 +39,56 @@ static vector<OraclePos> load_oracle(const string &path) {
     return out;
 }
 
+// Walk the tree under push/make/unmake/pop and check the incrementally updated
+// accumulator against one rebuilt from the board. `eval_leaves_only` makes the
+// replay chains as long as the walk is deep, which is what a real search does.
+static void walk(Board &b, int depth, bool eval_leaves_only,
+                 long long &checked, long long &bad, string &first_bad) {
+    if (depth == 0 || !eval_leaves_only) {
+        int inc = nnue_raw(b);
+        int ref = nnue_raw_refresh(b);
+        checked++;
+        if (inc != ref && first_bad.empty()) {
+            first_bad = "incremental " + to_string(inc) + " vs refresh " + to_string(ref);
+        }
+        if (inc != ref) bad++;
+    }
+    if (depth == 0) return;
+
+    MoveList ml = generate_moves<ALL_MOVES>(b);
+    for (int i = 0; i < ml.size; i++) {
+        Move m = ml.moves[i];
+        nnue_push(b, m);
+        b.make_move(m);
+        walk(b, depth - 1, eval_leaves_only, checked, bad, first_bad);
+        b.unmake_move(m);
+        nnue_pop();
+    }
+}
+
 DOCTEST_TEST_SUITE("eval correctness") {
+    TEST_CASE("incremental accumulator") {
+        static const char *roots[] = {
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+            "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+            "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
+        };
+        for (const char *fen : roots) {
+            for (bool leaves_only : {false, true}) {
+                Board b(fen);
+                nnue_reset();
+                long long checked = 0, bad = 0;
+                string first_bad;
+                walk(b, leaves_only ? 4 : 3, leaves_only, checked, bad, first_bad);
+                cout << (leaves_only ? "chains  " : "every   ") << " depth "
+                     << (leaves_only ? 4 : 3) << " | " << checked << " nodes | "
+                     << bad << " mismatches  " << first_bad << "\n";
+                CHECK(bad == 0);
+            }
+        }
+    }
+
     TEST_CASE("KNOWN NNUE examples from Leela are used to test") {
         const string path = string(TEST_DATA_DIR) + "/nnue_examples.txt";
         vector<OraclePos> cases = load_oracle(path);
@@ -73,8 +124,9 @@ DOCTEST_TEST_SUITE("eval correctness") {
         for (const OraclePos *t : bad) {
             if (shown++ >= 5) break;
             Board b(t->fen);
-            cout << "  mismatch: " << t->fen << "\n    expected " << t->cp
-                 << " cp (out32 " << t->out32 << "), got " << evaluate(b) << " cp\n";
+            cout << "  mismatch: " << t->fen << "\n"
+                 << "    cp    expected " << t->cp << "  got " << evaluate(b) << "\n"
+                 << "    out32 expected " << t->out32 << "  got " << nnue_raw(b) << "\n";
         }
     }
 }
