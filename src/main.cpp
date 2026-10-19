@@ -46,6 +46,13 @@ int main(int argc, char** argv) {
             int res = context.run();
             if (context.shouldExit()) return res;
             return 0;
+        } else if (string(argv[i]) == "-e") {
+            doctest::Context context;
+            context.setOption("no-output-redirect", true);
+            context.setOption("test-suite", "eval correctness");
+            int res = context.run();
+            if (context.shouldExit()) return res;
+            return 0;
         } else if (string(argv[i]) == "-c") {
             doctest::Context context;
             context.setOption("no-output-redirect", true);

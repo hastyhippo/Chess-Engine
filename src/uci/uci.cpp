@@ -60,6 +60,9 @@ string UCI::move_to_uci(Move m) {
 void UCI::uci() {
     cout << "id name hippoengine\n";
     cout << "id author hastyhippo\n";
+    cout << "option name Eval type combo default " << eval_mode_name(EVAL_PESTO);
+    for (int i = 0; i < EVAL_MODE_COUNT; i++) cout << " var " << eval_mode_name((EvalMode)i);
+    cout << "\n";
     cout << "uciok\n";
 }
 
@@ -68,8 +71,17 @@ void UCI::isready() {
 }
 
 void UCI::set_option(string cmd) {
+    // setoption name <id> value <v>; scan for the keywords rather than fixed
+    // indices, since splitString keeps empty tokens from repeated spaces.
     vector<string> tokens = splitString(cmd, ' ');
-    if (tokens.size() >= 3 && tokens[1] == "name") {
+    string id, value;
+    for (size_t i = 0; i + 1 < tokens.size(); i++) {
+        if (tokens[i] == "name" && id.empty()) id = tokens[i + 1];
+        if (tokens[i] == "value") value = tokens[i + 1];
+    }
+    if (id == "Eval") {
+        if (set_eval_mode(value)) cout << "info string eval " << eval_mode_name() << "\n";
+        else cout << "info string unknown Eval value: " << value << "\n";
     }
 }
 

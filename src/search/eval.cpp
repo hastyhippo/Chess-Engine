@@ -1,7 +1,7 @@
 #include "eval.h"
 #include <nmmintrin.h>
 
-bool use_pesto = true;
+EvalMode eval_mode = EVAL_NNUE;
 
 
 // PeSTO piece-square tables (from Rofchade)
@@ -200,6 +200,29 @@ static int evaluate_material(Board &b) {
     return score * (b.getWhiteTurn() ? 1 : -1);
 }
 
+static int evaluate_nnue(Board &b) {
+    return 0;
+}
+
+static const char *EVAL_MODE_NAMES[EVAL_MODE_COUNT] = { "pesto", "material", "NNUE" };
+
+const char *eval_mode_name(EvalMode m) { return EVAL_MODE_NAMES[m]; }
+const char *eval_mode_name() { return EVAL_MODE_NAMES[eval_mode]; }
+
+bool set_eval_mode(const string &name) {
+    for (int i = 0; i < EVAL_MODE_COUNT; i++) {
+        if (name == EVAL_MODE_NAMES[i]) {
+            eval_mode = (EvalMode)i;
+            return true;
+        }
+    }
+    return false;
+}
+
 int evaluate(Board &b) {
-    return use_pesto ? evaluate_pesto(b) : evaluate_material(b);
+    switch (eval_mode) {
+        case EVAL_MATERIAL: return evaluate_material(b);
+        case EVAL_NNUE:     return evaluate_nnue(b);
+        default:            return evaluate_pesto(b);
+    }
 }
