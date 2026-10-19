@@ -11,7 +11,7 @@ TTEntry tt[TT_SIZE];
 // but they must not reach the transposition table.
 static TimePoint search_deadline = TimePoint::max();
 static bool search_timed_out = false;
-long long scouts = 0, researches = 0, first_move_best = 0, nodes_with_moves = 0;
+long long scouts = 0, researches = 0, lmr_researches = 0, first_move_best = 0, nodes_with_moves = 0;
 constexpr int QSEARCH_MAX_PLY = 64;
 
 // Quiet-move ordering. Captures are already ranked by MVV-LVA; these two give
@@ -19,10 +19,21 @@ constexpr int QSEARCH_MAX_PLY = 64;
 //   killers: quiets that caused a beta cutoff at this same ply elsewhere
 //   history: how often a (side, piece, destination) has caused a cutoff
 static bool from_null[MAX_DEPTH];   // this ply was reached by a null move
+
+// Late move reductions. Moves far down the ordering are probably bad, so they
+// are searched shallow first and only re-searched if they prove otherwise.
+static int lmr_table[MAX_DEPTH][64];
+static void init_lmr() {
+    for (int d = 1; d < MAX_DEPTH; d++)
+        for (int m = 1; m < 64; m++)
+            lmr_table[d][m] = (int)(0.75 + log((double)d) * log((double)m) / 2.25);
+}
 static Move killers[MAX_DEPTH][2];
 static int history[64][64];   // [from][to]
 
 static void clear_ordering_tables() {
+    static bool lmr_ready = false;
+    if (!lmr_ready) { init_lmr(); lmr_ready = true; }
     memset(from_null, 0, sizeof from_null);
     memset(killers, 0, sizeof killers);
     memset(history, 0, sizeof history);
@@ -136,18 +147,29 @@ int negamax(Board &b, int depth, int ply, int alpha, int beta, TimePoint time_li
     while (it < possible_moves.size) { // get it'th best move according to move ordering
         Move m = possible_moves.get_next_move(it++);
         PVLine child_pv;
+        const bool quiet = is_quiet(b, m);   // must be read before the move is made
         nnue_push(b, m);
         b.make_move(m);
+        const bool gives_check = b.in_check();
 
-        // Principal variation search. The ordering above means the first move is
-        // usually best, so the rest only need a null window to prove they are
-        // not. A scout that beats alpha is re-searched properly.
+        // Principal variation search with late move reductions. The first move
+        // gets a full window; the rest get a null window, and quiet moves late
+        // in the ordering also get reduced depth. Anything that beats alpha is
+        // re-searched at full depth, then with the full window.
         int res;
         if (searched == 0) {
             res = negamax(b, depth - 1, ply + 1, -beta, -alpha, time_limit, child_pv);
         } else {
+            int r = 0;
+            if (depth >= 3 && searched >= 3 && quiet && !in_check && !gives_check)
+                r = min(lmr_table[min(depth, MAX_DEPTH - 1)][min(searched, 63)], depth - 2);
+
             scouts++;
-            res = negamax(b, depth - 1, ply + 1, -alpha - 1, -alpha, time_limit, child_pv);
+            res = negamax(b, depth - 1 - r, ply + 1, -alpha - 1, -alpha, time_limit, child_pv);
+            if (r > 0 && res != OUTOFTIME && -res > alpha) {
+                lmr_researches++;
+                res = negamax(b, depth - 1, ply + 1, -alpha - 1, -alpha, time_limit, child_pv);
+            }
             if (res != OUTOFTIME && -res > alpha && -res < beta) {
                 researches++;
                 res = negamax(b, depth - 1, ply + 1, -beta, -alpha, time_limit, child_pv);
@@ -331,7 +353,7 @@ Move get_best_move(Board &b, int depth, int time_limit_ms) {
     search_deadline = time_limit;
     search_timed_out = false;
     clear_ordering_tables();
-    scouts = researches = first_move_best = nodes_with_moves = 0;
+    scouts = researches = lmr_researches = first_move_best = nodes_with_moves = 0;
 
     Move best_move = root_moves.moves[0];   // always a legal move to fall back on
     nodes_searched = 0;
@@ -395,7 +417,8 @@ Move get_best_move(Board &b, int depth, int time_limit_ms) {
         if (nodes_with_moves)
             cout << "info string ordering: cutoff-nodes " << nodes_with_moves
                  << " first-move " << first_move_best
-                 << " | scouts " << scouts << " researches " << researches << "\n";
+                 << " | scouts " << scouts << " researches " << researches
+                 << " lmr-researches " << lmr_researches << "\n";
         cout.flush();
         
         if (best_value >= MATE_SCORE) {
