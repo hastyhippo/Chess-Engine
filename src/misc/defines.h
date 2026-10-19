@@ -178,7 +178,7 @@ constexpr int MAX_MOVES_GEN = 256;
 
 struct MoveList {
     Move moves[MAX_MOVES_GEN];
-    int16_t evals[MAX_MOVES_GEN];
+    int32_t evals[MAX_MOVES_GEN];
 
     int size = 0;
 

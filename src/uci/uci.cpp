@@ -191,11 +191,11 @@ void UCI::go(string cmd) {
 
     Move best_move;
     if (infinite) {
-        best_move = get_best_move(board, 0);            // no limit: search until "stop"
+        best_move = get_best_move(board, MAX_PV_DEPTH, 0);   // no limit: search until "stop"
     } else if (depth > 0 && mytime == 0 && movetime == 0) {
         best_move = get_best_move(board, depth, 0);     // fixed-depth mode (e.g. "go depth 6")
     } else {
-        best_move = get_best_move(board, allocate_time_ms(mytime, myinc, movetime));
+        best_move = get_best_move(board, MAX_PV_DEPTH, allocate_time_ms(mytime, myinc, movetime));
     }
     cout << "bestmove " << move_to_uci(best_move) << "\n";
 }

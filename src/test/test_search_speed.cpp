@@ -37,7 +37,7 @@ DOCTEST_TEST_SUITE("search speed") {
                 nodes_searched = 0;
                 PVLine pv;
                 auto t0 = chrono::high_resolution_clock::now();
-                int score = negamax(b, d, -INF, INF, TimePoint::max(), pv);
+                int score = negamax(b, d, 0, -INF, INF, TimePoint::max(), pv);
                 double ms = chrono::duration<double, milli>(
                     chrono::high_resolution_clock::now() - t0).count();
 

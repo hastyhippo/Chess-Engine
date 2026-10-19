@@ -85,7 +85,7 @@ DOCTEST_TEST_SUITE("search correctness") {
         PVLine pv;
         b.make_move(find_move(b, "h1h2"));
         CHECK(b.getHalfMoveClock() == 100);
-        int score = negamax(b, 3, -INF, INF, TimePoint::max(), pv);
+        int score = negamax(b, 3, 0, -INF, INF, TimePoint::max(), pv);
         CHECK(score == 0);
     }
 
@@ -94,7 +94,7 @@ DOCTEST_TEST_SUITE("search correctness") {
         play(b, {"g1f3", "g8f6", "f3g1", "f6g8"});  // back to startpos
 
         PVLine pv;
-        int score = negamax(b, 4, -INF, INF, TimePoint::max(), pv);
+        int score = negamax(b, 4, 0, -INF, INF, TimePoint::max(), pv);
         CHECK(score == 0);
     }
 }

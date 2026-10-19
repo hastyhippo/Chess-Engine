@@ -92,6 +92,14 @@ class Board {
 
 int psqt_mg(int colour, int type, int sq);  // defined in eval.cpp
 
+// Ordering bands. Quiets are scored by history alone, so they are left at 0
+// here and filled in by order_quiets(), which also applies the killers.
+constexpr int32_t ORDER_TT       = 1000000;
+constexpr int32_t ORDER_TACTICAL =  100000;
+constexpr int32_t ORDER_KILLER_1 =   90000;
+constexpr int32_t ORDER_KILLER_2 =   80000;
+constexpr int32_t ORDER_HIST_MAX =   70000;   // stays below the killers
+
 inline void update_movelist_evals(Board &b, MoveList &ml, Move priority = Move()) {
     constexpr int piece_val[6] = {100, 300, 300, 500, 900, 0};
     Colour side = b.isWhiteTurn() ? WHITE : BLACK;
@@ -99,10 +107,10 @@ inline void update_movelist_evals(Board &b, MoveList &ml, Move priority = Move()
     for (int i = 0; i < ml.size; i++) {
         Move &m = ml.moves[i];
         if (m == priority) {
-            ml.evals[i] = INT16_MAX;
+            ml.evals[i] = ORDER_TT;
             continue;
         }
-        int16_t score = 0;
+        int32_t score = 0;
 
         uint8_t fromPiece = b.pieceOn(m.getFromSq());
         uint8_t toPiece = b.pieceOn(m.getToSq());
@@ -112,18 +120,19 @@ inline void update_movelist_evals(Board &b, MoveList &ml, Move priority = Move()
         // then ordered by the capturing piece
 
         if (flag == ENPASSANT) {
-            score += 10 * piece_val[PAWN] - piece_val[PAWN];  // victim not on to_sq
-        } else if (toPiece == EMPTY_SQ) {
-            score += psqt_mg(side, type_of(fromPiece), m.getToSq())
-                   - psqt_mg(side, type_of(fromPiece), m.getFromSq());
-        } else {
-            // MVV-LVA: 10x victim keeps every capture above every quiet
-            score += 10 * piece_val[type_of(toPiece)] - piece_val[type_of(fromPiece)];
+            score = ORDER_TACTICAL + 10 * piece_val[PAWN] - piece_val[PAWN];
+        } else if (toPiece != EMPTY_SQ) {
+            // MVV-LVA: 10x victim orders by what is won, then by what risks it
+            score = ORDER_TACTICAL + 10 * piece_val[type_of(toPiece)]
+                  - piece_val[type_of(fromPiece)];
         }
-        if (m.isPromo()) score += piece_val[m.promoPiece()] - piece_val[PAWN];
-        if (flag == CASTLE) score += 50;
+        // Promotions are forcing, so they join the tactical band either way.
+        if (m.isPromo()) {
+            if (score == 0) score = ORDER_TACTICAL;
+            score += piece_val[m.promoPiece()] - piece_val[PAWN];
+        }
 
-        ml.evals[i] = (int16_t)score;
+        ml.evals[i] = score;   // quiets stay 0; order_quiets() ranks them
     }
 }
 

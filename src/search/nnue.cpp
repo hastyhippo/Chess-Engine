@@ -322,7 +322,7 @@ int nnue_raw_refresh(Board &b) {
 
 int nnue_evaluate(Board &b) {
     if (!loaded) return 0;
-    // Round half away from zero. Relies on C++ '/' truncating toward zero.
+    // Round half away from zero.  '/' truncating toward zero.
     const int den = S_OUT * QONE;
     const int num = nnue_raw(b) * N2S;
     return num >= 0 ? (num + den / 2) / den : (num - den / 2) / den;

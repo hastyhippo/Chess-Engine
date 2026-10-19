@@ -5,11 +5,59 @@ int nodes_searched = 0;
 int qnodes_searched = 0;
 
 TTEntry tt[TT_SIZE];
-int tt_age = 0;
-int negamax(Board &b, int depth, int alpha, int beta, TimePoint time_limit, PVLine &pv) {
+
+// qsearch has no time argument, so the deadline is shared. Once it trips the
+// whole iteration is discarded at the root, so partial results are harmless --
+// but they must not reach the transposition table.
+static TimePoint search_deadline = TimePoint::max();
+static bool search_timed_out = false;
+constexpr int QSEARCH_MAX_PLY = 64;
+
+// Quiet-move ordering. Captures are already ranked by MVV-LVA; these two give
+// the quiets an order, which is what makes the rest of the pruning work.
+//   killers: quiets that caused a beta cutoff at this same ply elsewhere
+//   history: how often a (side, piece, destination) has caused a cutoff
+static Move killers[MAX_DEPTH][2];
+static int history[64][64];   // [from][to]
+
+static void clear_ordering_tables() {
+    memset(killers, 0, sizeof killers);
+    memset(history, 0, sizeof history);
+}
+
+static inline bool is_quiet(Board &b, Move m) {
+    return b.pieceOn(m.getToSq()) == EMPTY_SQ
+        && m.getMoveFlag() != ENPASSANT && !m.isPromo();
+}
+
+static void record_cutoff(Board &b, Move m, int depth, int ply) {
+    if (ply < MAX_DEPTH && !(killers[ply][0] == m)) {
+        killers[ply][1] = killers[ply][0];
+        killers[ply][0] = m;
+    }
+    int &h = history[m.getFromSq()][m.getToSq()];
+    h += depth * depth;
+    if (h > ORDER_HIST_MAX) {        // rare: halve everything, ordering survives
+        for (int f = 0; f < 64; f++)
+            for (int t = 0; t < 64; t++) history[f][t] /= 2;
+    }
+}
+
+// Rank the quiets update_movelist_evals left at 0: killers first, then history.
+static void order_quiets(MoveList &ml, int ply) {
+    for (int i = 0; i < ml.size; i++) {
+        if (ml.evals[i] != 0) continue;   // TT move and tacticals keep their score
+        Move &m = ml.moves[i];
+        if (ply < MAX_DEPTH && killers[ply][0] == m)      ml.evals[i] = ORDER_KILLER_1;
+        else if (ply < MAX_DEPTH && killers[ply][1] == m) ml.evals[i] = ORDER_KILLER_2;
+        else ml.evals[i] = history[m.getFromSq()][m.getToSq()];
+    }
+}
+int negamax(Board &b, int depth, int ply, int alpha, int beta, TimePoint time_limit, PVLine &pv) {
     pv.length = 0;
     if (nodes_searched++ % 2048 == 0) {
         if (Clock::now() >= time_limit) {
+            search_timed_out = true;
             return OUTOFTIME;
         }
     }
@@ -39,7 +87,7 @@ int negamax(Board &b, int depth, int alpha, int beta, TimePoint time_limit, PVLi
 
     uint64_t key = b.getHash();
     TTEntry* tte = probe(key);
-    if (tte != NULL &&  tte->key == key && tte->depth >= depth) {
+    if (tte->key == key && tte->depth >= depth) {
         int value = tte->value;
         if (value > MATE_SCORE) value = value + depth;
         if (value < -MATE_SCORE) value = value - depth;
@@ -55,13 +103,14 @@ int negamax(Board &b, int depth, int alpha, int beta, TimePoint time_limit, PVLi
     int alpha_orig = alpha;
     int value = -CHECKMATE - 1;
     update_movelist_evals(b, possible_moves, tte->key == key ? tte->move : MOVE_NONE); // For move ordering
+    order_quiets(possible_moves, ply);
     int it = 0;
     while (it < possible_moves.size) { // get it'th best move according to move ordering
         Move m = possible_moves.get_next_move(it++);
         PVLine child_pv;
         nnue_push(b, m);
         b.make_move(m);
-        int res = negamax(b, depth - 1, -beta, -alpha, time_limit, child_pv);
+        int res = negamax(b, depth - 1, ply + 1, -beta, -alpha, time_limit, child_pv);
         b.unmake_move(m);
         nnue_pop();
 
@@ -76,7 +125,10 @@ int negamax(Board &b, int depth, int alpha, int beta, TimePoint time_limit, PVLi
         }
 
         alpha = max(alpha, score);
-        if (alpha >= beta) break;
+        if (alpha >= beta) {
+            if (is_quiet(b, m)) record_cutoff(b, m, depth, ply);
+            break;
+        }
     }
 
     // update the big tt
@@ -84,24 +136,22 @@ int negamax(Board &b, int depth, int alpha, int beta, TimePoint time_limit, PVLi
     if (value > MATE_SCORE)         tt_value -= depth;
     else if (value < -MATE_SCORE)   tt_value += depth;
 
+    if (search_timed_out) return value;   // partial result: do not poison the TT
+
     tte->key   = key;
-    tte->value = value;
+    tte->value = tt_value;
     tte->move  = pv.moves[0];
     tte->depth = depth;
     tte->bound = (value <= alpha_orig) ? UPPER 
                : (value >= beta)       ? LOWER 
                                        : EXACT;
-    tte->age = tt_age;
 
     return value;
 }
 
-int piece_value(uint8_t piece_type) { 
-    if (piece_type == EMPTY_SQ) {
-        return 0;
-    } else {
-        return PIECE_VALUES[piece_type];
-    }
+int piece_value(uint8_t pc) {
+    // pc is a piece code (colour*6 + type); PIECE_VALUES is indexed by type.
+    return pc == EMPTY_SQ ? 0 : PIECE_VALUES[type_of(pc)];
 }
 
 // Swap algorithm: simulate the capture sequence on to_sq, always recapturing with the least valuable attacker.
@@ -152,7 +202,14 @@ int SEE(Board &b, Move &m) {
 
 int qsearch(Board &b, int alpha, int beta, int qdepth) {
     qnodes_searched++;
+    if ((qnodes_searched & 2047) == 0 && Clock::now() >= search_deadline)
+        search_timed_out = true;
+
     bool check = b.in_check();
+    if (search_timed_out || qdepth >= QSEARCH_MAX_PLY) {
+        // alpha is a safe fail-low; standing pat while in check is not legal
+        return check ? alpha : evaluate(b);
+    }
     int static_eval = 0;
 
     if (!check) {
@@ -173,9 +230,6 @@ int qsearch(Board &b, int alpha, int beta, int qdepth) {
         Move m = moves.get_next_move(it++);
 
         if (!check) {
-            uint8_t victim = b.pieceOn(m.getToSq());
-            int vic = m.getMoveFlag() == ENPASSANT ? 100 : 
-                        victim != EMPTY_SQ ? PIECE_VALUES[type_of(victim)] : 0;
             if (SEE(b, m) < 0) continue;
         }
 
@@ -208,7 +262,8 @@ TTEntry* probe(uint64_t key) {
 }
 
 Move get_best_move(Board &b, int depth, int time_limit_ms) {
-    if (generate_moves<ALL_MOVES>(b).size == 0) return Move();
+    MoveList root_moves = generate_moves<ALL_MOVES>(b);
+    if (root_moves.size == 0) return Move();
     if (eval_mode == EVAL_NNUE && !nnue_ready()) {
         cerr << "\nFATAL: Eval=NNUE but no net is loaded.\n"
              << "  Build one with:  cd training && .venv/bin/python serialize.py <ckpt.pt>\n"
@@ -219,13 +274,20 @@ Move get_best_move(Board &b, int depth, int time_limit_ms) {
     }
     nnue_reset();   // the board moved outside the search (UCI position, new game)
 
+    // Reserve a margin for move output, but never let it exceed the budget --
+    // a negative deadline used to time out before the first node and return a
+    // default-constructed (illegal) move.
+    const int margin = min(50, time_limit_ms / 4);
     auto time_limit = time_limit_ms > 0
-        ? Clock::now() + std::chrono::milliseconds(time_limit_ms - 50)
+        ? Clock::now() + std::chrono::milliseconds(time_limit_ms - margin)
         : TimePoint::max();
 
-    Move best_move;
+    search_deadline = time_limit;
+    search_timed_out = false;
+    clear_ordering_tables();
+
+    Move best_move = root_moves.moves[0];   // always a legal move to fall back on
     nodes_searched = 0;
-    tt_age++;  // entries from previous searches become stale-but-usable
 
     for (int d = 1; d <= depth; d++) {
         PVLine pv;
@@ -237,6 +299,7 @@ Move get_best_move(Board &b, int depth, int time_limit_ms) {
 
         Move iter_best = moves[0];
         bool out_of_time = false;
+        int completed = 0;
 
         int it = 0;
         while (it < moves.size) {
@@ -244,11 +307,12 @@ Move get_best_move(Board &b, int depth, int time_limit_ms) {
             PVLine child_pv;
             nnue_push(b, m);
             b.make_move(m);
-            int res = negamax(b, d - 1, -INF, INF, time_limit, child_pv);
+            int res = negamax(b, d - 1, 1, -INF, INF, time_limit, child_pv);
             b.unmake_move(m);
             nnue_pop();
 
             if (res == OUTOFTIME) { out_of_time = true; break; }
+            completed++;
             int value = -res;
 
             if (value > best_value) {
@@ -264,7 +328,12 @@ Move get_best_move(Board &b, int depth, int time_limit_ms) {
             }
         }
 
-        if (out_of_time) break;
+        if (out_of_time) {
+            // Moves are ordered best-first, so a partially searched iteration
+            // still improves on the previous one if any move finished.
+            if (completed > 0) best_move = iter_best;
+            break;
+        }
 
         best_move = iter_best;
         double elapsed = duration<double, milli>(Clock::now() - start).count();
