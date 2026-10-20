@@ -113,12 +113,18 @@ int negamax(Board &b, int depth, int ply, int alpha, int beta, TimePoint time_li
     const bool in_check = b.in_check();
     const Colour stm = b.isWhiteTurn() ? WHITE : BLACK;
 
+    // Static eval at interior nodes, reused from the table when this position
+    // has been here before. Null move needs it; so will futility pruning.
+    int static_eval = EVAL_NONE;
+    if (!in_check)
+        static_eval = (tte->key == key && tte->eval != EVAL_NONE) ? tte->eval : evaluate(b);
+
     // Null move pruning: give the opponent a free move and search shallow; if
     // that still beats beta, a real move will too. Needs non-pawn material --
     // in a pawn endgame passing can genuinely beat every legal move.
     if (!in_check && depth >= 3 && ply > 0 && ply < MAX_DEPTH && !from_null[ply]
-        && beta < MATE_SCORE && b.has_non_pawn_material(stm)) {
-        const int R = 2 + depth / 6;
+        && beta < MATE_SCORE && static_eval >= beta && b.has_non_pawn_material(stm)) {
+        const int R = 3 + depth / 4 + min((static_eval - beta) / 200, 3);
         PVLine null_pv;
         from_null[ply + 1] = true;
         nnue_push_null();
@@ -183,6 +189,7 @@ int negamax(Board &b, int depth, int ply, int alpha, int beta, TimePoint time_li
 
     tte->key   = key;
     tte->value = tt_value;
+    tte->eval  = static_eval;
     tte->move  = pv.moves[0];
     tte->depth = depth;
     tte->bound = (value <= alpha_orig) ? UPPER 
@@ -256,7 +263,10 @@ int qsearch(Board &b, int alpha, int beta, int qdepth) {
     int static_eval = 0;
 
     if (!check) {
-        static_eval = evaluate(b);
+        const uint64_t qkey = b.getHash();
+        TTEntry *qtte = probe(qkey);
+        static_eval = (qtte->key == qkey && qtte->eval != EVAL_NONE)
+                    ? qtte->eval : evaluate(b);
         if (static_eval >= beta) return beta;
         if (static_eval > alpha) alpha = static_eval;
     }

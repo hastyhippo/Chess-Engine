@@ -138,12 +138,22 @@ void UCI::position(string cmd) {
 
 // Rough time allocation: spend ~1/20th of the remaining clock plus half the
 // increment, but never plan past the flag (small safety margin for overhead).
-static int allocate_time_ms(int mytime, int myinc, int movetime) {
+// Budget for one move. Spend the clock over an estimate of the moves left and
+// add most of the increment, which is replenished anyway. The cap stops a
+// single move from eating the game.
+static int allocate_time_ms(int mytime, int myinc, int movetime, int movestogo) {
     if (movetime > 0) return movetime;   // GUI dictated an exact per-move time
     if (mytime <= 0) return 1000;        // no clock info: default to 1s per move
-    int t = mytime / 50 + myinc / 2;
-    t = min(t, mytime - 50);
-    return max(t, 10);
+
+    constexpr int OVERHEAD = 50;         // comms latency we never get back
+    const int avail = max(mytime - OVERHEAD, 1);
+
+    // Without movestogo, assume a middlegame still has ~30 moves to play.
+    const int mtg = movestogo > 0 ? min(movestogo, 40) : 30;
+
+    int budget = avail / mtg + (myinc * 3) / 4;
+    budget = min(budget, avail / 3);     // never risk a third of the clock at once
+    return max(min(budget, avail), 10);
 }
 
 void UCI::go(string cmd) {
@@ -151,7 +161,7 @@ void UCI::go(string cmd) {
 
     int depth = 5;
     int movetime = 0;
-    int wtime = 0, btime = 0, winc = 0, binc = 0;
+    int wtime = 0, btime = 0, winc = 0, binc = 0, movestogo = 0;
     bool infinite = false;
 
     for (int i = 1; i < (int)tokens.size(); i++) {
@@ -171,6 +181,7 @@ void UCI::go(string cmd) {
         } 
         else if (tokens[i] == "depth"      && i + 1 < (int)tokens.size()) depth    = stoi(tokens[++i]);
         else if (tokens[i] == "movetime"   && i + 1 < (int)tokens.size()) movetime = stoi(tokens[++i]);
+        else if (tokens[i] == "movestogo"  && i + 1 < (int)tokens.size()) movestogo = stoi(tokens[++i]);
         else if (tokens[i] == "wtime"      && i + 1 < (int)tokens.size()) wtime    = stoi(tokens[++i]);
         else if (tokens[i] == "btime"      && i + 1 < (int)tokens.size()) btime    = stoi(tokens[++i]);
         else if (tokens[i] == "winc"       && i + 1 < (int)tokens.size()) winc     = stoi(tokens[++i]);
@@ -195,7 +206,7 @@ void UCI::go(string cmd) {
     } else if (depth > 0 && mytime == 0 && movetime == 0) {
         best_move = get_best_move(board, depth, 0);     // fixed-depth mode (e.g. "go depth 6")
     } else {
-        best_move = get_best_move(board, MAX_PV_DEPTH, allocate_time_ms(mytime, myinc, movetime));
+        best_move = get_best_move(board, MAX_PV_DEPTH, allocate_time_ms(mytime, myinc, movetime, movestogo));
     }
     cout << "bestmove " << move_to_uci(best_move) << "\n";
 }

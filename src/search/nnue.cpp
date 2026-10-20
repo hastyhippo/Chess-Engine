@@ -4,12 +4,13 @@
 
 namespace {
 
-constexpr int NUM_FEATURES = 40960;
+constexpr int NUM_FEATURES = 24576;   // HalfKAv2_hm: 768 planes x 32 king buckets
+constexpr int NUM_PLANES = 768;       // 64 squares x 12 (6 piece types x 2 colours)
 constexpr int L0 = 256, L1 = 512, L2 = 32, L3 = 32;
 constexpr int FT_SCALE = 127, S_L1 = 128, S_L2 = 64, S_OUT = 64, N2S = 128;
 constexpr int SHIFT_L1 = 7, SHIFT_L2 = 6;   // log2 of the weight scales
 constexpr int QONE = 127;                   // clipped relu upper bound
-constexpr int MAX_ACTIVE = 30;              // HalfKP excludes kings
+constexpr int MAX_ACTIVE = 32;              // kings are features in HalfKAv2_hm
 constexpr uint32_t FILE_VERSION = 1;
 
 struct Header {
@@ -36,25 +37,51 @@ bool fail(FILE *f, const string &why) {
     return false;
 }
 
-// Black's perspective is a vertical flip, matching HalfKP::orient() as actually
-// compiled in nnue-pytorch. (halfkp-extractor.patch shows a 180 rotation; the
-// built loader does not do that, and the loader is what trained the net.)
-inline int orient(Colour pov, int sq) { return pov == WHITE ? sq : (sq ^ 56); }
+// Mirrors nnue-pytorch's orient_flip_2: black flips vertically, and the board
+// flips horizontally when the perspective's king stands on files a-d. The
+// horizontal fold is what halves the feature count.
+inline int orient(Colour pov, int sq, int ksq) {
+    if (pov == BLACK) sq ^= 56;
+    if ((ksq & 7) < 4) sq ^= 7;
+    return sq;
+}
+
+// 64 king squares fold onto 32 buckets; -1 entries are unreachable after the
+// horizontal flip, which always puts the king on files e-h.
+constexpr int KING_BUCKETS[64] = {
+    -1, -1, -1, -1, 31, 30, 29, 28,
+    -1, -1, -1, -1, 27, 26, 25, 24,
+    -1, -1, -1, -1, 23, 22, 21, 20,
+    -1, -1, -1, -1, 19, 18, 17, 16,
+    -1, -1, -1, -1, 15, 14, 13, 12,
+    -1, -1, -1, -1, 11, 10,  9,  8,
+    -1, -1, -1, -1,  7,  6,  5,  4,
+    -1, -1, -1, -1,  3,  2,  1,  0,
+};
 
 // index = orient(sq) + p_idx*64 + orient(ksq)*640, kings excluded.
 // The colour bit is relative to the perspective, not absolute.
+inline int feature_index(Colour pov, uint8_t p, int sq, int ksq, int king_offset) {
+    const int p_idx = type_of(p) * 2 + (colour_of(p) != pov);
+    return orient(pov, sq, ksq) + p_idx * 64 + king_offset;
+}
+
+// The bucket depends only on the perspective's own king, so it is constant
+// along any chain of moves that does not move that king.
+inline int king_offset_for(Colour pov, int ksq) {
+    return KING_BUCKETS[orient(pov, ksq, ksq)] * NUM_PLANES;
+}
+
 int active_features(Board &b, Colour pov, int *out) {
     uint64_t kbb = b.getKingBitboard(pov);
-    const int king_offset = orient(pov, get_lsb(kbb)) * 640;
+    const int ksq = get_lsb(kbb);
+    const int king_offset = king_offset_for(pov, ksq);
 
-    uint64_t occ = b.get_occupancy()
-                 & ~(b.getKingBitboard(WHITE) | b.getKingBitboard(BLACK));
+    uint64_t occ = b.get_occupancy();   // kings included
     int n = 0;
     while (occ && n < MAX_ACTIVE) {
         const uint8_t sq = pop_lsb(&occ);
-        const uint8_t p = b.pieceOn(sq);
-        const int p_idx = type_of(p) * 2 + (colour_of(p) != pov);
-        out[n++] = orient(pov, sq) + p_idx * 64 + king_offset;
+        out[n++] = feature_index(pov, b.pieceOn(sq), sq, ksq, king_offset);
     }
     return n;
 }
@@ -98,11 +125,6 @@ int32_t forward(const int16_t *us, const int16_t *them) {
     return out;
 }
 
-inline int feature_index(Colour pov, uint8_t p, int sq, int king_offset) {
-    const int p_idx = type_of(p) * 2 + (colour_of(p) != pov);
-    return orient(pov, sq) + p_idx * 64 + king_offset;
-}
-
 // ---- lazy accumulator stack ------------------------------------------------
 // A move is recorded when it is made, but the accumulator is only materialised
 // when evaluate() actually asks for it. Most nodes in this engine never call
@@ -142,15 +164,16 @@ void refresh(Board &b, Colour pov, int16_t *acc) {
 }
 
 // Replay one move's piece changes onto an existing accumulator.
-void apply(const DirtyPiece &d, Colour pov, int king_offset, int16_t *acc) {
+void apply(const DirtyPiece &d, Colour pov, int ksq, int king_offset, int16_t *acc) {
+    // Kings are features here, so an enemy king move is an ordinary update.
+    // Only the perspective's own king moving forces a refresh, handled above.
     for (int i = 0; i < d.n; i++) {
-        if (type_of(d.pc[i]) == KING) continue;  // kings are not features
         if (d.from[i] >= 0) {
-            const int16_t *w = &ft_weight[(size_t)feature_index(pov, d.pc[i], d.from[i], king_offset) * L0];
+            const int16_t *w = &ft_weight[(size_t)feature_index(pov, d.pc[i], d.from[i], ksq, king_offset) * L0];
             for (int j = 0; j < L0; j++) acc[j] -= w[j];
         }
         if (d.to[i] >= 0) {
-            const int16_t *w = &ft_weight[(size_t)feature_index(pov, d.pc[i], d.to[i], king_offset) * L0];
+            const int16_t *w = &ft_weight[(size_t)feature_index(pov, d.pc[i], d.to[i], ksq, king_offset) * L0];
             for (int j = 0; j < L0; j++) acc[j] += w[j];
         }
     }
@@ -176,11 +199,12 @@ void ensure(Board &b, Colour pov) {
     // The king has not moved along this chain, so its square -- and therefore
     // the feature offset -- is the same at every step.
     uint64_t kbb = b.getKingBitboard(pov);
-    const int king_offset = orient(pov, get_lsb(kbb)) * 640;
+    const int ksq = get_lsb(kbb);
+    const int king_offset = king_offset_for(pov, ksq);
 
     if (base != ply) memcpy(cur.v[pov], stack_[base].v[pov], sizeof cur.v[pov]);
     for (int i = base + 1; i <= ply; i++)
-        apply(stack_[i].dirty, pov, king_offset, cur.v[pov]);
+        apply(stack_[i].dirty, pov, ksq, king_offset, cur.v[pov]);
     cur.computed[pov] = true;
 }
 

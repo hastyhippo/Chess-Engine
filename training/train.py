@@ -32,17 +32,19 @@ os.chdir(NNUE_DIR)
 
 from data_loader import DataloaderSkipConfig, SparseBatchProvider
 
-FEATURE_SET = "HalfKP" 
+FEATURE_SET = "HalfKAv2_hm"
 BATCH_SIZE = 8000
 NUM_WORKERS = 4
 NUM_SQUARES = 64
-PIECE_TYPE_CNT = 5
+PIECE_TYPE_CNT = 6          # HalfKAv2_hm includes kings
+KING_BUCKETS = 32           # king squares fold onto 32 buckets by mirroring
 
-
-REAL_INPUT_SIZE = NUM_SQUARES * NUM_SQUARES * PIECE_TYPE_CNT * 2
-VIRTUAL_INPUT_SIZE = NUM_SQUARES * PIECE_TYPE_CNT * 2
+# index = orient_flip_2(sq) + p_idx*64 + KingBuckets[o_ksq]*768
+NUM_PLANES = NUM_SQUARES * PIECE_TYPE_CNT * 2            # 768
+REAL_INPUT_SIZE = NUM_PLANES * KING_BUCKETS              # 24576
+VIRTUAL_INPUT_SIZE = NUM_PLANES                          # piece-square factor
 TOTAL_INPUT_SIZE = VIRTUAL_INPUT_SIZE + REAL_INPUT_SIZE
-MAX_ACTIVE_FEATURES = 30  # HalfKP, kings excluded: at most 30 pieces per perspective
+MAX_ACTIVE_FEATURES = 32    # kings are features now
 
 L0_SIZE = 256           # accumulator width, per perspective
 L1_SIZE = L0_SIZE * 2   # both perspectives concatenated
@@ -73,7 +75,7 @@ MAX_OUT_WEIGHT = QUANTIZED_ONE / WEIGHT_SCALE_OUT
 CHECKPOINT_FORMAT = 3  # 1 = Sequential tower, cp output; 2 = NNUE2SCORE 64
 V2_NNUE2SCORE = 64.0
 
-RUN_DESC = "Virtual Input Space, 8000 batch sizes"
+RUN_DESC = "HalfKAv2_hm, 8000 batch sizes"
 
 DEVICE = "mps" if torch.backends.mps.is_available() else "cpu"
 
@@ -94,8 +96,8 @@ class InputLayer(nn.Module):
         self.b = nn.Parameter((torch.zeros(size = (L0_SIZE,))))
 
     def coalesced(self):
-        """The 40960 rows the engine stores: real + its virtual (factorizer) row."""
-        return self.W[:REAL_INPUT_SIZE] + self.W[REAL_INPUT_SIZE:].repeat(NUM_SQUARES, 1)
+        """The rows the engine stores: real + its virtual (factorizer) row."""
+        return self.W[:REAL_INPUT_SIZE] + self.W[REAL_INPUT_SIZE:].repeat(KING_BUCKETS, 1)
 
     def accumulate(self, W, bias, indices):
         """Sum the rows for one perspective's active features."""
@@ -289,52 +291,6 @@ def quantization_report(model):
     print("---------------------------\n")
 
 
-def visualize_position(white_indices, black_indices, us, outcome, score):
-    def sq_name(sq):
-        return chr(ord('a') + sq % 8) + str(sq // 8 + 1)
-
-    def decode(idx):
-        ksq, rem = divmod(idx, 640)
-        p_idx, sq = divmod(rem, 64)
-        ptype, theirs = divmod(p_idx, 2)
-        return ksq, sq, ptype, theirs
-
-    print(f"white_indices {tuple(white_indices.shape)}:\n{white_indices}")
-    print(f"black_indices {tuple(black_indices.shape)}:\n{black_indices}")
-
-    for b in range(us.shape[0]):
-        # Decode each POV into physical-board terms (white's frame).
-        # orient() for black is a vertical flip, sq ^ 56.
-        white_set, black_set = set(), set()
-        wksq = bksq = None
-        for idx in white_indices[b]:
-            if idx.item() < 0:
-                continue
-            ksq, sq, ptype, theirs = decode(idx.item())
-            white_set.add((sq, ptype, "black" if theirs else "white"))
-            wksq = ksq
-        for idx in black_indices[b]:
-            if idx.item() < 0:
-                continue
-            ksq, sq, ptype, theirs = decode(idx.item())
-            black_set.add((sq ^ 56, ptype, "white" if theirs else "black"))
-            bksq = ksq ^ 56
-
-        print(f"\nposition {b}: side to move: {'white' if us[b].item() else 'black'} | "
-              f"score {score[b].item():+.0f} cp | outcome {outcome[b].item()}")
-        # One grid, white's POV: uppercase = white, lowercase = black.
-        grid = [["." for _ in range(8)] for _ in range(8)]
-        for sq, ptype, colour in white_set | black_set:
-            piece = "PNBRQ"[ptype]
-            grid[sq // 8][sq % 8] = piece if colour == "white" else piece.lower()
-        if wksq is not None:
-            grid[wksq // 8][wksq % 8] = "K"
-        if bksq is not None:
-            grid[bksq // 8][bksq % 8] = "k"
-        for rank in range(7, -1, -1):
-            print("    " + str(rank + 1) + "  " + " ".join(grid[rank]))
-        print("       a b c d e f g h")
-
 def plot_run(run_id, losses, ewma_losses, path):
     """Plot raw loss (faint) with its EWMA (strong) and save as a PNG."""
     its = list(losses.keys())
@@ -394,7 +350,6 @@ def execute_training_loop(model, provider, optimiser, total_batches):
         # provider has an __iter__/ __next__ dunder which provides samples when looped through
         
         us, them, white_indices, black_indices, outcome, score, piece_count = batch
-        # visualize_position(white_indices, black_indices, us, outcome, score)
 
         y_pred = model(white_indices, black_indices, us)
 

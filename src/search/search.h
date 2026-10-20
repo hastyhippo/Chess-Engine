@@ -24,9 +24,12 @@ struct PVLine {
 
 enum Bound { EXACT, LOWER, UPPER };
 
+constexpr int32_t EVAL_NONE = INT32_MIN;
+
 struct TTEntry {
     uint64_t key;
-    int32_t value;  // int16 can't hold mate scores (CHECKMATE = 8888888)
+    int32_t value;
+    int32_t eval;   // static eval, cached: NNUE is too slow to recompute  // int16 can't hold mate scores (CHECKMATE = 8888888)
     Move move;
     uint8_t depth;
     Bound bound;

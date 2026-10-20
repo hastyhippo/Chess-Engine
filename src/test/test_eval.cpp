@@ -67,6 +67,23 @@ static void walk(Board &b, int depth, bool eval_leaves_only,
 }
 
 DOCTEST_TEST_SUITE("eval correctness") {
+    TEST_CASE("feature dump") {
+        vector<OraclePos> cases = load_oracle(string(TEST_DATA_DIR) + "/nnue_examples.txt");
+        REQUIRE(cases.size() > 0);
+        int f[64];
+        for (int i = 0; i < 3; i++) {
+            Board b(cases[i].fen);
+            cout << "FEN " << cases[i].fen << "\n";
+            for (int pov = 1; pov >= 0; pov--) {
+                int n = nnue_debug_features(b, pov, f);
+                sort(f, f + n);
+                cout << (pov ? "  white " : "  black ") << n << ":";
+                for (int k = 0; k < n; k++) cout << " " << f[k];
+                cout << "\n";
+            }
+        }
+    }
+
     TEST_CASE("incremental accumulator") {
         static const char *roots[] = {
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
